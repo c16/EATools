@@ -858,8 +858,7 @@ class SparxDocGenerator:
                 for scenario_type in ['Basic Path', 'Alternate', 'Exception']:
                     if scenario_type in scenarios_by_type:
                         for scenario in scenarios_by_type[scenario_type]:
-                            uc_content += f"## {scenario.name}\n\n"
-                            uc_content += f"**Type:** {scenario.scenario_type}\n\n"
+                            uc_content += f"## {scenario.scenario_type}: {scenario.name}\n\n"
 
                             if scenario.steps:
                                 uc_content += "**Steps:**\n\n"
@@ -885,8 +884,7 @@ class SparxDocGenerator:
                 for scenario_type, scenarios in scenarios_by_type.items():
                     if scenario_type not in ['Basic Path', 'Alternate', 'Exception']:
                         for scenario in scenarios:
-                            uc_content += f"## {scenario.name}\n\n"
-                            uc_content += f"**Type:** {scenario.scenario_type}\n\n"
+                            uc_content += f"## {scenario.scenario_type}: {scenario.name}\n\n"
 
                             if scenario.steps:
                                 uc_content += "**Steps:**\n\n"
