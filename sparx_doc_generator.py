@@ -169,6 +169,8 @@ class Scenario:
     scenario_type: str  # Basic Path, Exception, Alternate, etc.
     steps: List[str] = field(default_factory=list)
     notes: str = ''
+    ea_guid: str = ''
+    extensions: List[Tuple[int, str, str]] = field(default_factory=list)  # [(step_index, level, extension_guid), ...]
 
 
 class SparxDocGenerator:
@@ -634,7 +636,7 @@ class SparxDocGenerator:
         cursor = self.conn.cursor()
 
         cursor.execute("""
-            SELECT Object_ID, Scenario, ScenarioType, Notes, XMLContent
+            SELECT Object_ID, Scenario, ScenarioType, Notes, XMLContent, ea_guid
             FROM t_objectscenarios
             ORDER BY Object_ID, Scenario
         """)
@@ -645,18 +647,30 @@ class SparxDocGenerator:
             scenario_type = row['ScenarioType']
             notes = row['Notes'] or ''
             xml_content = row['XMLContent']
+            ea_guid = row['ea_guid'] or ''
 
             steps = []
+            extensions = []
             if xml_content:
                 try:
-                    # Parse XML to extract steps
+                    # Parse XML to extract steps and extensions
                     root = ET.fromstring(xml_content)
-                    for step_elem in root.findall('.//step'):
+                    step_index = 0
+                    for step_elem in root.findall('step'):  # Direct children only
                         step_name = step_elem.get('name', '')
                         if step_name:
                             # Decode HTML entities in step name
                             step_name = html.unescape(step_name)
                             steps.append(step_name)
+
+                            # Check for extension elements
+                            for ext_elem in step_elem.findall('extension'):
+                                ext_level = ext_elem.get('level', '')
+                                ext_guid = ext_elem.get('guid', '')
+                                if ext_level and ext_guid:
+                                    extensions.append((step_index, ext_level, ext_guid))
+
+                            step_index += 1
                 except ET.ParseError as e:
                     logger.warning(f"Failed to parse XML for scenario '{scenario_name}': {e}")
 
@@ -664,7 +678,9 @@ class SparxDocGenerator:
                 name=scenario_name,
                 scenario_type=scenario_type,
                 steps=steps,
-                notes=notes
+                notes=notes,
+                ea_guid=ea_guid,
+                extensions=extensions
             )
             self.scenarios[object_id].append(scenario)
 
@@ -827,6 +843,12 @@ class SparxDocGenerator:
             if uc.object_id in self.scenarios:
                 uc_scenarios = self.scenarios[uc.object_id]
 
+                # Create a GUID-to-scenario mapping for quick lookup
+                guid_to_scenario = {}
+                for scenario in uc_scenarios:
+                    if scenario.ea_guid:
+                        guid_to_scenario[scenario.ea_guid] = scenario
+
                 # Group scenarios by type
                 scenarios_by_type = defaultdict(list)
                 for scenario in uc_scenarios:
@@ -843,6 +865,17 @@ class SparxDocGenerator:
                                 uc_content += "**Steps:**\n\n"
                                 for idx, step in enumerate(scenario.steps, 1):
                                     uc_content += f"{idx}. {step}\n"
+
+                                    # Check if this step has extensions (for Basic Path)
+                                    if scenario.scenario_type == 'Basic Path':
+                                        for ext_step_idx, ext_level, ext_guid in scenario.extensions:
+                                            if ext_step_idx == idx - 1:  # idx is 1-based, ext_step_idx is 0-based
+                                                # Find the scenario that this extension points to
+                                                if ext_guid in guid_to_scenario:
+                                                    ext_scenario = guid_to_scenario[ext_guid]
+                                                    flow_type = "Alternate flow" if ext_scenario.scenario_type == "Alternate" else "Exception flow"
+                                                    uc_content += f"   {ext_level}. {flow_type}: {ext_scenario.name}\n"
+
                                 uc_content += "\n"
 
                             if scenario.notes:
@@ -859,6 +892,16 @@ class SparxDocGenerator:
                                 uc_content += "**Steps:**\n\n"
                                 for idx, step in enumerate(scenario.steps, 1):
                                     uc_content += f"{idx}. {step}\n"
+
+                                    # Check if this step has extensions
+                                    for ext_step_idx, ext_level, ext_guid in scenario.extensions:
+                                        if ext_step_idx == idx - 1:  # idx is 1-based, ext_step_idx is 0-based
+                                            # Find the scenario that this extension points to
+                                            if ext_guid in guid_to_scenario:
+                                                ext_scenario = guid_to_scenario[ext_guid]
+                                                flow_type = "Alternate flow" if ext_scenario.scenario_type == "Alternate" else "Exception flow"
+                                                uc_content += f"   {ext_level}. {flow_type}: {ext_scenario.name}\n"
+
                                 uc_content += "\n"
 
                             if scenario.notes:
