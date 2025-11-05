@@ -369,7 +369,7 @@ class SparxDocGenerator:
         # Extract classes
         cursor.execute("""
             SELECT o.Object_ID, o.Name, o.Note, o.Stereotype, o.Scope,
-                   o.Abstract,
+                   o.[Abstract],
                    p.Name as Package
             FROM t_object o
             LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
@@ -445,8 +445,8 @@ class SparxDocGenerator:
         cursor = self.conn.cursor()
 
         cursor.execute("""
-            SELECT Object_ID, Name, Type, Scope, Default, Notes,
-                   IsStatic, IsConst, Pos
+            SELECT Object_ID, Name, [Type], Scope, [Default], Notes,
+                   IsStatic, Const, Pos
             FROM t_attribute
             ORDER BY Object_ID, Pos
         """)
@@ -459,7 +459,7 @@ class SparxDocGenerator:
                 default=row['Default'] or '',
                 notes=row['Notes'] or '',
                 is_static=bool(row['IsStatic']),
-                is_const=bool(row['IsConst']),
+                is_const=bool(row['Const']),
                 pos=row['Pos'] or 0
             )
             self.attributes[row['Object_ID']].append(attr)
@@ -472,8 +472,8 @@ class SparxDocGenerator:
         cursor = self.conn.cursor()
 
         cursor.execute("""
-            SELECT OperationID, Object_ID, Name, Type, Scope,
-                   Abstract, IsStatic, Notes
+            SELECT OperationID, Object_ID, Name, [Type], Scope,
+                   [Abstract], IsStatic, Notes
             FROM t_operation
             ORDER BY Object_ID, Name
         """)
@@ -492,7 +492,7 @@ class SparxDocGenerator:
 
         # Extract operation parameters
         cursor.execute("""
-            SELECT OperationID, Name, Type, Kind
+            SELECT OperationID, Name, [Type], Kind
             FROM t_operationparams
             ORDER BY OperationID, Pos
         """)
