@@ -160,6 +160,8 @@ class Connector:
     source_role: str
     target_role: str
     notes: str
+    trigger: str = ''
+    guard: str = ''
 
 
 @dataclass
@@ -619,7 +621,7 @@ class SparxDocGenerator:
                    c.Start_Object_ID, c.End_Object_ID,
                    c.SourceCard, c.DestCard,
                    c.SourceRole, c.DestRole,
-                   c.Notes,
+                   c.Notes, c.PDATA1, c.PDATA2,
                    o1.Name as SourceName, o1.Object_Type as SourceType,
                    o2.Name as TargetName, o2.Object_Type as TargetType
             FROM t_connector c
@@ -640,7 +642,9 @@ class SparxDocGenerator:
                 target_card=row['DestCard'] or '',
                 source_role=row['SourceRole'] or '',
                 target_role=row['DestRole'] or '',
-                notes=row['Notes'] or ''
+                notes=row['Notes'] or '',
+                trigger=row['PDATA1'] or '',
+                guard=row['PDATA2'] or ''
             )
             self.connectors.append(connector)
 
@@ -1061,47 +1065,25 @@ class SparxDocGenerator:
 
             if states:
                 sm_content += "## States\n\n"
+                sm_content += "| State | Type | Entry | Do | Exit | Description |\n"
+                sm_content += "|-------|------|-------|----|----- |-------------|\n"
 
                 for state in states:
-                    sm_content += f"### {state.name}\n\n"
-                    sm_content += f"**Type:** {state.object_type}\n\n"
-
-                    if state.clean_note():
-                        sm_content += f"**Description:** {state.clean_note()}\n\n"
-
                     # Get entry, do, exit operations for this state
                     state_operations = self.operations.get(state.object_id, [])
-                    if state_operations:
-                        entry_ops = [op for op in state_operations if op.return_type == 'entry']
-                        do_ops = [op for op in state_operations if op.return_type == 'do']
-                        exit_ops = [op for op in state_operations if op.return_type == 'exit']
+                    entry_ops = [op for op in state_operations if op.return_type == 'entry']
+                    do_ops = [op for op in state_operations if op.return_type == 'do']
+                    exit_ops = [op for op in state_operations if op.return_type == 'exit']
 
-                        if entry_ops:
-                            sm_content += "**Entry:**\n"
-                            for op in entry_ops:
-                                sm_content += f"- {op.name}"
-                                if op.notes:
-                                    sm_content += f" - {op.notes}"
-                                sm_content += "\n"
-                            sm_content += "\n"
+                    # Format operations as comma-separated lists
+                    entry_str = ', '.join([op.name for op in entry_ops]) if entry_ops else '-'
+                    do_str = ', '.join([op.name for op in do_ops]) if do_ops else '-'
+                    exit_str = ', '.join([op.name for op in exit_ops]) if exit_ops else '-'
+                    desc_str = state.clean_note() if state.clean_note() else '-'
 
-                        if do_ops:
-                            sm_content += "**Do:**\n"
-                            for op in do_ops:
-                                sm_content += f"- {op.name}"
-                                if op.notes:
-                                    sm_content += f" - {op.notes}"
-                                sm_content += "\n"
-                            sm_content += "\n"
+                    sm_content += f"| {state.name} | {state.object_type} | {entry_str} | {do_str} | {exit_str} | {desc_str} |\n"
 
-                        if exit_ops:
-                            sm_content += "**Exit:**\n"
-                            for op in exit_ops:
-                                sm_content += f"- {op.name}"
-                                if op.notes:
-                                    sm_content += f" - {op.notes}"
-                                sm_content += "\n"
-                            sm_content += "\n"
+                sm_content += "\n"
 
                 # Get transitions (StateFlow connectors)
                 sm_content += "## Transitions\n\n"
@@ -1114,8 +1096,8 @@ class SparxDocGenerator:
                         break
 
                 if transitions_found:
-                    sm_content += "| From | To | Notes |\n"
-                    sm_content += "|------|----|-------|\n"
+                    sm_content += "| From | To | Trigger | Guard | Notes |\n"
+                    sm_content += "|------|----|---------|-------|-------|\n"
 
                     for state in states:
                         connectors = self.get_connectors_for_element(state.object_id, 'StateFlow')
@@ -1123,8 +1105,10 @@ class SparxDocGenerator:
                             if conn.source_id == state.object_id:
                                 target = self.elements.get(conn.target_id)
                                 if target:
+                                    trigger = conn.trigger or '-'
+                                    guard = conn.guard or '-'
                                     notes = conn.notes or '-'
-                                    sm_content += f"| {state.name} | {target.name} | {notes} |\n"
+                                    sm_content += f"| {state.name} | {target.name} | {trigger} | {guard} | {notes} |\n"
                     sm_content += "\n"
                 else:
                     sm_content += "*No transitions defined.*\n\n"
