@@ -236,7 +236,7 @@ class SparxDocGenerator:
             FROM t_object o
             LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
             WHERE o.Object_Type = 'UseCase'
-            ORDER BY o.Name
+            ORDER BY o.Object_ID
         """)
 
         for row in cursor.fetchall():
@@ -259,7 +259,7 @@ class SparxDocGenerator:
             FROM t_object o
             LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
             WHERE o.Object_Type = 'Actor'
-            ORDER BY o.Name
+            ORDER BY o.Object_ID
         """)
 
         for row in cursor.fetchall():
@@ -608,15 +608,14 @@ class SparxDocGenerator:
         uc_index_content += "This document provides an overview of all use cases in the system.\n\n"
         uc_index_content += "## Use Case List\n\n"
 
-        for idx, uc in enumerate(self.use_cases, 1):
-            uc_id = f"UC-{idx:03d}"
-            uc_filename = f"uc-{idx:03d}-{uc.name.lower().replace(' ', '-')}.md"
+        for uc in self.use_cases:
+            uc_filename = f"{uc.name.lower().replace(' ', '-')}.md"
 
             # Add to index
-            uc_index_content += f"- [{uc_id}: {uc.name}]({uc_filename})\n"
+            uc_index_content += f"- [{uc.name}]({uc_filename})\n"
 
             # Generate individual use case file
-            uc_content = f"# {uc_id}: {uc.name}\n\n"
+            uc_content = f"# {uc.name}\n\n"
 
             if uc.stereotype:
                 uc_content += f"**Stereotype:** <<{uc.stereotype}>>\n\n"
