@@ -904,7 +904,17 @@ class SparxDocGenerator:
 
                 if section_name in sections:
                     uc_content += f"## {section_name}\n\n"
-                    uc_content += f"{sections[section_name]}\n\n"
+                    # Format Business Rules as a bulleted list if they have multiple lines
+                    if section_name == 'Business Rules':
+                        rules = [line.strip() for line in sections[section_name].split('\n') if line.strip()]
+                        if len(rules) > 1:
+                            for rule in rules:
+                                uc_content += f"- {rule}\n"
+                            uc_content += "\n"
+                        else:
+                            uc_content += f"{sections[section_name]}\n\n"
+                    else:
+                        uc_content += f"{sections[section_name]}\n\n"
 
             # Add scenarios from t_objectscenarios table
             if uc.object_id in self.scenarios:
