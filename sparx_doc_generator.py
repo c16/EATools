@@ -12,6 +12,7 @@ import re
 import html
 import argparse
 import logging
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any
@@ -161,6 +162,15 @@ class Connector:
     notes: str
 
 
+@dataclass
+class Scenario:
+    """Use case scenario"""
+    name: str
+    scenario_type: str  # Basic Path, Exception, Alternate, etc.
+    steps: List[str] = field(default_factory=list)
+    notes: str = ''
+
+
 class SparxDocGenerator:
     """Main documentation generator class"""
 
@@ -191,6 +201,7 @@ class SparxDocGenerator:
         self.attributes: Dict[int, List[Attribute]] = defaultdict(list)
         self.operations: Dict[int, List[Operation]] = defaultdict(list)
         self.connectors: List[Connector] = []
+        self.scenarios: Dict[int, List[Scenario]] = defaultdict(list)
         self.packages: Dict[int, str] = {}
 
         # Quality metrics
@@ -617,6 +628,49 @@ class SparxDocGenerator:
 
         logger.info(f"Extracted {len(self.connectors)} connectors")
 
+    def extract_scenarios(self):
+        """Extract scenarios for use cases"""
+        logger.info("Extracting scenarios...")
+        cursor = self.conn.cursor()
+
+        cursor.execute("""
+            SELECT Object_ID, Scenario, ScenarioType, Notes, XMLContent
+            FROM t_objectscenarios
+            ORDER BY Object_ID, Scenario
+        """)
+
+        for row in cursor.fetchall():
+            object_id = row['Object_ID']
+            scenario_name = row['Scenario']
+            scenario_type = row['ScenarioType']
+            notes = row['Notes'] or ''
+            xml_content = row['XMLContent']
+
+            steps = []
+            if xml_content:
+                try:
+                    # Parse XML to extract steps
+                    root = ET.fromstring(xml_content)
+                    for step_elem in root.findall('.//step'):
+                        step_name = step_elem.get('name', '')
+                        if step_name:
+                            # Decode HTML entities in step name
+                            step_name = html.unescape(step_name)
+                            steps.append(step_name)
+                except ET.ParseError as e:
+                    logger.warning(f"Failed to parse XML for scenario '{scenario_name}': {e}")
+
+            scenario = Scenario(
+                name=scenario_name,
+                scenario_type=scenario_type,
+                steps=steps,
+                notes=notes
+            )
+            self.scenarios[object_id].append(scenario)
+
+        total_scenarios = sum(len(scenarios) for scenarios in self.scenarios.values())
+        logger.info(f"Extracted {total_scenarios} scenarios for {len(self.scenarios)} objects")
+
     def extract_model_data(self):
         """Main extraction orchestrator"""
         logger.info("Starting model data extraction...")
@@ -632,6 +686,7 @@ class SparxDocGenerator:
             self.extract_attributes()
             self.extract_operations()
             self.extract_connectors()
+            self.extract_scenarios()
 
             self.quality_metrics['total_elements'] = len(self.elements)
             logger.info(f"Extraction complete. Total elements: {len(self.elements)}")
@@ -767,6 +822,47 @@ class SparxDocGenerator:
                 if section_name in sections:
                     uc_content += f"## {section_name}\n\n"
                     uc_content += f"{sections[section_name]}\n\n"
+
+            # Add scenarios from t_objectscenarios table
+            if uc.object_id in self.scenarios:
+                uc_scenarios = self.scenarios[uc.object_id]
+
+                # Group scenarios by type
+                scenarios_by_type = defaultdict(list)
+                for scenario in uc_scenarios:
+                    scenarios_by_type[scenario.scenario_type].append(scenario)
+
+                # Display scenarios organized by type
+                for scenario_type in ['Basic Path', 'Alternate', 'Exception']:
+                    if scenario_type in scenarios_by_type:
+                        for scenario in scenarios_by_type[scenario_type]:
+                            uc_content += f"## {scenario.name}\n\n"
+                            uc_content += f"**Type:** {scenario.scenario_type}\n\n"
+
+                            if scenario.steps:
+                                uc_content += "**Steps:**\n\n"
+                                for idx, step in enumerate(scenario.steps, 1):
+                                    uc_content += f"{idx}. {step}\n"
+                                uc_content += "\n"
+
+                            if scenario.notes:
+                                uc_content += f"**Notes:** {scenario.notes}\n\n"
+
+                # Display any other scenario types not in the standard list
+                for scenario_type, scenarios in scenarios_by_type.items():
+                    if scenario_type not in ['Basic Path', 'Alternate', 'Exception']:
+                        for scenario in scenarios:
+                            uc_content += f"## {scenario.name}\n\n"
+                            uc_content += f"**Type:** {scenario.scenario_type}\n\n"
+
+                            if scenario.steps:
+                                uc_content += "**Steps:**\n\n"
+                                for idx, step in enumerate(scenario.steps, 1):
+                                    uc_content += f"{idx}. {step}\n"
+                                uc_content += "\n"
+
+                            if scenario.notes:
+                                uc_content += f"**Notes:** {scenario.notes}\n\n"
 
             with open(uc_dir / uc_filename, 'w') as f:
                 f.write(uc_content)
