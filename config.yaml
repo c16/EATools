@@ -1,0 +1,31 @@
+# Configuration file for Sparx Enterprise Architect Documentation Generator
+
+# Output settings
+output:
+  directory: "docs"
+  include_timestamp: true
+  include_author: true
+
+# Extraction settings
+extraction:
+  include_private: false
+  include_deprecated: true
+  extract_tagged_values: true
+  extract_diagrams: true
+
+# Documentation settings
+documentation:
+  use_cases:
+    detailed_scenarios: true
+    include_test_cases: true
+  classes:
+    include_private_members: false
+    show_dependencies: true
+  components:
+    show_deployment: true
+
+# Quality check settings
+quality_checks:
+  check_undocumented: true
+  check_orphaned: true
+  min_description_length: 20
