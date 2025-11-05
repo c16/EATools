@@ -1064,6 +1064,8 @@ class SparxDocGenerator:
             states = self.states.get(sm.object_id, [])
 
             if states:
+                # TODO: Revisit state documentation formatting for better readability
+                # Consider alternative table formats or presentation styles
                 sm_content += "## States\n\n"
 
                 for state in states:
