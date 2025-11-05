@@ -1061,14 +1061,47 @@ class SparxDocGenerator:
 
             if states:
                 sm_content += "## States\n\n"
-                sm_content += "| State | Type | Description |\n"
-                sm_content += "|-------|------|-------------|\n"
 
                 for state in states:
-                    desc = state.clean_note() or 'No description'
-                    sm_content += f"| {state.name} | {state.object_type} | {desc} |\n"
+                    sm_content += f"### {state.name}\n\n"
+                    sm_content += f"**Type:** {state.object_type}\n\n"
 
-                sm_content += "\n"
+                    if state.clean_note():
+                        sm_content += f"**Description:** {state.clean_note()}\n\n"
+
+                    # Get entry, do, exit operations for this state
+                    state_operations = self.operations.get(state.object_id, [])
+                    if state_operations:
+                        entry_ops = [op for op in state_operations if op.return_type == 'entry']
+                        do_ops = [op for op in state_operations if op.return_type == 'do']
+                        exit_ops = [op for op in state_operations if op.return_type == 'exit']
+
+                        if entry_ops:
+                            sm_content += "**Entry:**\n"
+                            for op in entry_ops:
+                                sm_content += f"- {op.name}"
+                                if op.notes:
+                                    sm_content += f" - {op.notes}"
+                                sm_content += "\n"
+                            sm_content += "\n"
+
+                        if do_ops:
+                            sm_content += "**Do:**\n"
+                            for op in do_ops:
+                                sm_content += f"- {op.name}"
+                                if op.notes:
+                                    sm_content += f" - {op.notes}"
+                                sm_content += "\n"
+                            sm_content += "\n"
+
+                        if exit_ops:
+                            sm_content += "**Exit:**\n"
+                            for op in exit_ops:
+                                sm_content += f"- {op.name}"
+                                if op.notes:
+                                    sm_content += f" - {op.notes}"
+                                sm_content += "\n"
+                            sm_content += "\n"
 
                 # Get transitions (StateFlow connectors)
                 sm_content += "## Transitions\n\n"
