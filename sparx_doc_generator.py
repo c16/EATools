@@ -1065,25 +1065,30 @@ class SparxDocGenerator:
 
             if states:
                 sm_content += "## States\n\n"
-                sm_content += "| State | Type | Entry | Do | Exit | Description |\n"
-                sm_content += "|-------|------|-------|----|----- |-------------|\n"
 
                 for state in states:
+                    sm_content += f"### {state.name}\n\n"
+
                     # Get entry, do, exit operations for this state
                     state_operations = self.operations.get(state.object_id, [])
                     entry_ops = [op for op in state_operations if op.return_type == 'entry']
                     do_ops = [op for op in state_operations if op.return_type == 'do']
                     exit_ops = [op for op in state_operations if op.return_type == 'exit']
 
-                    # Format operations as comma-separated lists
-                    entry_str = ', '.join([op.name for op in entry_ops]) if entry_ops else '-'
-                    do_str = ', '.join([op.name for op in do_ops]) if do_ops else '-'
-                    exit_str = ', '.join([op.name for op in exit_ops]) if exit_ops else '-'
+                    # Format operations as bulleted lists
+                    entry_str = '<br>'.join([f'- {op.name}' for op in entry_ops]) if entry_ops else '-'
+                    do_str = '<br>'.join([f'- {op.name}' for op in do_ops]) if do_ops else '-'
+                    exit_str = '<br>'.join([f'- {op.name}' for op in exit_ops]) if exit_ops else '-'
                     desc_str = state.clean_note() if state.clean_note() else '-'
 
-                    sm_content += f"| {state.name} | {state.object_type} | {entry_str} | {do_str} | {exit_str} | {desc_str} |\n"
-
-                sm_content += "\n"
+                    sm_content += "| Property | Value |\n"
+                    sm_content += "|----------|-------|\n"
+                    sm_content += f"| Type | {state.object_type} |\n"
+                    sm_content += f"| Entry | {entry_str} |\n"
+                    sm_content += f"| Do | {do_str} |\n"
+                    sm_content += f"| Exit | {exit_str} |\n"
+                    sm_content += f"| Description | {desc_str} |\n"
+                    sm_content += "\n"
 
                 # Get transitions (StateFlow connectors)
                 sm_content += "## Transitions\n\n"
