@@ -173,6 +173,14 @@ class Scenario:
     extensions: List[Tuple[int, str, str]] = field(default_factory=list)  # [(step_index, level, extension_guid), ...]
 
 
+@dataclass
+class Constraint:
+    """Object constraint (pre-condition, post-condition, etc.)"""
+    name: str
+    constraint_type: str  # Pre-condition, Post-condition, etc.
+    notes: str = ''
+
+
 class SparxDocGenerator:
     """Main documentation generator class"""
 
@@ -204,6 +212,7 @@ class SparxDocGenerator:
         self.operations: Dict[int, List[Operation]] = defaultdict(list)
         self.connectors: List[Connector] = []
         self.scenarios: Dict[int, List[Scenario]] = defaultdict(list)
+        self.constraints: Dict[int, List[Constraint]] = defaultdict(list)
         self.packages: Dict[int, str] = {}
 
         # Quality metrics
@@ -687,6 +696,33 @@ class SparxDocGenerator:
         total_scenarios = sum(len(scenarios) for scenarios in self.scenarios.values())
         logger.info(f"Extracted {total_scenarios} scenarios for {len(self.scenarios)} objects")
 
+    def extract_constraints(self):
+        """Extract constraints (pre-conditions, post-conditions, etc.)"""
+        logger.info("Extracting constraints...")
+        cursor = self.conn.cursor()
+
+        cursor.execute("""
+            SELECT Object_ID, [Constraint], ConstraintType, Notes
+            FROM t_objectconstraint
+            ORDER BY Object_ID, ConstraintType, [Constraint]
+        """)
+
+        for row in cursor.fetchall():
+            object_id = row['Object_ID']
+            constraint_name = row['Constraint']
+            constraint_type = row['ConstraintType']
+            notes = row['Notes'] or ''
+
+            constraint = Constraint(
+                name=constraint_name,
+                constraint_type=constraint_type,
+                notes=notes
+            )
+            self.constraints[object_id].append(constraint)
+
+        total_constraints = sum(len(constraints) for constraints in self.constraints.values())
+        logger.info(f"Extracted {total_constraints} constraints for {len(self.constraints)} objects")
+
     def extract_model_data(self):
         """Main extraction orchestrator"""
         logger.info("Starting model data extraction...")
@@ -703,6 +739,7 @@ class SparxDocGenerator:
             self.extract_operations()
             self.extract_connectors()
             self.extract_scenarios()
+            self.extract_constraints()
 
             self.quality_metrics['total_elements'] = len(self.elements)
             logger.info(f"Extraction complete. Total elements: {len(self.elements)}")
@@ -830,11 +867,41 @@ class SparxDocGenerator:
                     uc_content += f"- {assoc}\n"
                 uc_content += "\n"
 
-            # Add structured sections from notes
+            # Add pre-conditions and post-conditions from constraints table
+            if uc.object_id in self.constraints:
+                preconditions = [c for c in self.constraints[uc.object_id] if c.constraint_type == 'Pre-condition']
+                postconditions = [c for c in self.constraints[uc.object_id] if c.constraint_type == 'Post-condition']
+
+                if preconditions:
+                    uc_content += "## Preconditions\n\n"
+                    for pc in preconditions:
+                        uc_content += f"**{pc.name}**\n\n"
+                        if pc.notes:
+                            uc_content += f"{pc.notes}\n\n"
+
+                if postconditions:
+                    uc_content += "## Postconditions\n\n"
+                    for pc in postconditions:
+                        uc_content += f"**{pc.name}**\n\n"
+                        if pc.notes:
+                            uc_content += f"{pc.notes}\n\n"
+
+            # Add structured sections from notes (excluding Preconditions/Postconditions if already shown from constraints)
             section_order = ['Preconditions', 'Postconditions', 'Main Flow', 'Scenarios',
                            'Alternative Flows', 'Business Rules', 'Exceptions']
 
+            # Skip Preconditions/Postconditions from notes if we already added them from constraints
+            has_constraints = uc.object_id in self.constraints
+            preconditions_from_constraints = has_constraints and any(c.constraint_type == 'Pre-condition' for c in self.constraints[uc.object_id])
+            postconditions_from_constraints = has_constraints and any(c.constraint_type == 'Post-condition' for c in self.constraints[uc.object_id])
+
             for section_name in section_order:
+                # Skip if already shown from constraints
+                if section_name == 'Preconditions' and preconditions_from_constraints:
+                    continue
+                if section_name == 'Postconditions' and postconditions_from_constraints:
+                    continue
+
                 if section_name in sections:
                     uc_content += f"## {section_name}\n\n"
                     uc_content += f"{sections[section_name]}\n\n"
