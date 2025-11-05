@@ -373,38 +373,43 @@ class SparxDocGenerator:
         logger.info("Extracting state machines...")
         cursor = self.conn.cursor()
 
-        # Extract state machine diagrams/containers
+        # Extract state machine diagrams (these are the main organizational units)
         cursor.execute("""
-            SELECT o.Object_ID, o.Name, o.Note, o.Stereotype, o.Scope,
+            SELECT d.Diagram_ID, d.Name, d.Notes, d.Package_ID,
                    p.Name as Package
-            FROM t_object o
-            LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
-            WHERE o.Object_Type = 'StateMachine'
-            ORDER BY o.Name
+            FROM t_diagram d
+            LEFT JOIN t_package p ON d.Package_ID = p.Package_ID
+            WHERE d.Diagram_Type = 'Statechart'
+            ORDER BY d.Name
         """)
 
+        diagram_to_sm = {}
         for row in cursor.fetchall():
+            # Create a pseudo-element for the state machine diagram
             element = Element(
-                object_id=row['Object_ID'],
+                object_id=row['Diagram_ID'],  # Using diagram ID as object ID
                 name=row['Name'],
                 object_type='StateMachine',
-                note=row['Note'] or '',
-                stereotype=row['Stereotype'] or '',
+                note=row['Notes'] or '',
+                stereotype='',
                 package_name=row['Package'] or 'Unknown',
-                visibility=row['Scope'] or 'public'
+                visibility='public'
             )
             self.state_machines.append(element)
-            self.elements[element.object_id] = element
+            diagram_to_sm[row['Diagram_ID']] = element
+            # Note: Not adding to self.elements since Diagram_ID != Object_ID
 
-        # Extract states
+        # Extract objects on each state machine diagram
         cursor.execute("""
-            SELECT o.Object_ID, o.Name, o.Note, o.Stereotype, o.Scope,
-                   o.ParentID, o.Object_Type,
+            SELECT do.Diagram_ID, do.Object_ID,
+                   o.Name, o.Note, o.Stereotype, o.Scope, o.Object_Type, o.ParentID,
                    p.Name as Package
-            FROM t_object o
+            FROM t_diagramobjects do
+            JOIN t_diagram d ON do.Diagram_ID = d.Diagram_ID
+            JOIN t_object o ON do.Object_ID = o.Object_ID
             LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
-            WHERE o.Object_Type IN ('State', 'StateNode', 'InitialState', 'FinalState')
-            ORDER BY o.ParentID, o.Name
+            WHERE d.Diagram_Type = 'Statechart'
+            ORDER BY do.Diagram_ID, o.Name
         """)
 
         for row in cursor.fetchall():
@@ -417,8 +422,10 @@ class SparxDocGenerator:
                 package_name=row['Package'] or 'Unknown',
                 visibility=row['Scope'] or 'public'
             )
-            parent_id = row['ParentID']
-            self.states[parent_id].append(element)
+
+            # Group states by their diagram
+            diagram_id = row['Diagram_ID']
+            self.states[diagram_id].append(element)
             self.elements[element.object_id] = element
 
         logger.info(f"Extracted {len(self.state_machines)} state machines")
