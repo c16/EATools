@@ -50,6 +50,75 @@ class Element:
         text = re.sub(r'\s+', ' ', text).strip()
         return text
 
+    def parse_structured_note(self) -> Dict[str, str]:
+        """
+        Parse notes field for structured sections like:
+        - Preconditions / Pre-conditions
+        - Postconditions / Post-conditions
+        - Main Flow / Scenario
+        - Alternative Flows
+        - Business Rules
+        Returns dict with section names as keys
+        """
+        if not self.note:
+            return {}
+
+        # Remove HTML tags but keep structure
+        text = re.sub(r'<[^>]+>', '', self.note)
+        text = html.unescape(text)
+
+        sections = {}
+        current_section = None
+        current_content = []
+
+        # Common section headers to look for (case-insensitive)
+        section_patterns = [
+            (r'^(pre[-\s]?conditions?):?\s*$', 'Preconditions'),
+            (r'^(post[-\s]?conditions?):?\s*$', 'Postconditions'),
+            (r'^(main\s+flow):?\s*$', 'Main Flow'),
+            (r'^(basic\s+flow):?\s*$', 'Main Flow'),
+            (r'^(scenarios?):?\s*$', 'Scenarios'),
+            (r'^(alternative\s+flows?):?\s*$', 'Alternative Flows'),
+            (r'^(business\s+rules?):?\s*$', 'Business Rules'),
+            (r'^(exceptions?):?\s*$', 'Exceptions'),
+            (r'^(description):?\s*$', 'Description'),
+        ]
+
+        lines = text.split('\n')
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Check if this line is a section header
+            is_header = False
+            for pattern, section_name in section_patterns:
+                if re.match(pattern, line, re.IGNORECASE):
+                    # Save previous section if any
+                    if current_section and current_content:
+                        sections[current_section] = '\n'.join(current_content).strip()
+                    current_section = section_name
+                    current_content = []
+                    is_header = True
+                    break
+
+            if not is_header:
+                if current_section:
+                    current_content.append(line)
+                else:
+                    # Content before any section header goes to Description
+                    if 'Description' not in sections:
+                        sections['Description'] = line
+                    else:
+                        sections['Description'] += '\n' + line
+
+        # Save last section
+        if current_section and current_content:
+            sections[current_section] = '\n'.join(current_content).strip()
+
+        return sections
+
 
 @dataclass
 class Attribute:
@@ -621,7 +690,23 @@ class SparxDocGenerator:
                 uc_content += f"**Stereotype:** <<{uc.stereotype}>>\n\n"
 
             uc_content += f"**Package:** {uc.package_name}\n\n"
-            uc_content += f"**Description:** {uc.clean_note() or 'No description available'}\n\n"
+
+            # Parse structured notes
+            sections = uc.parse_structured_note()
+
+            # Description - only show if there's content not in other sections
+            has_structured_sections = any(key in sections for key in ['Preconditions', 'Postconditions',
+                                                                       'Main Flow', 'Scenarios',
+                                                                       'Alternative Flows', 'Business Rules',
+                                                                       'Exceptions'])
+
+            if 'Description' in sections and sections['Description']:
+                uc_content += f"**Description:** {sections['Description']}\n\n"
+            elif not has_structured_sections and uc.clean_note():
+                # If no structured sections found, show the whole note as description
+                uc_content += f"**Description:** {uc.clean_note()}\n\n"
+            elif not has_structured_sections:
+                uc_content += "**Description:** No description available\n\n"
 
             # Find related actors and use cases
             connectors = self.get_connectors_for_element(uc.object_id)
@@ -673,6 +758,15 @@ class SparxDocGenerator:
                 for assoc in associations:
                     uc_content += f"- {assoc}\n"
                 uc_content += "\n"
+
+            # Add structured sections from notes
+            section_order = ['Preconditions', 'Postconditions', 'Main Flow', 'Scenarios',
+                           'Alternative Flows', 'Business Rules', 'Exceptions']
+
+            for section_name in section_order:
+                if section_name in sections:
+                    uc_content += f"## {section_name}\n\n"
+                    uc_content += f"{sections[section_name]}\n\n"
 
             with open(uc_dir / uc_filename, 'w') as f:
                 f.write(uc_content)
