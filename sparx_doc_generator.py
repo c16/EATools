@@ -849,6 +849,13 @@ class SparxDocGenerator:
                     if scenario.ea_guid:
                         guid_to_scenario[scenario.ea_guid] = scenario
 
+                # Create a GUID-to-level mapping from extensions in Basic Path
+                guid_to_level = {}
+                for scenario in uc_scenarios:
+                    if scenario.scenario_type == 'Basic Path':
+                        for ext_step_idx, ext_level, ext_guid in scenario.extensions:
+                            guid_to_level[ext_guid] = ext_level
+
                 # Group scenarios by type
                 scenarios_by_type = defaultdict(list)
                 for scenario in uc_scenarios:
@@ -858,7 +865,13 @@ class SparxDocGenerator:
                 for scenario_type in ['Basic Path', 'Alternate', 'Exception']:
                     if scenario_type in scenarios_by_type:
                         for scenario in scenarios_by_type[scenario_type]:
-                            uc_content += f"## {scenario.scenario_type}: {scenario.name}\n\n"
+                            # For Alternate/Exception, prefix with step level if available
+                            if scenario.scenario_type in ['Alternate', 'Exception'] and scenario.ea_guid in guid_to_level:
+                                level_prefix = guid_to_level[scenario.ea_guid] + " "
+                            else:
+                                level_prefix = ""
+
+                            uc_content += f"## {level_prefix}{scenario.scenario_type}: {scenario.name}\n\n"
 
                             if scenario.steps:
                                 uc_content += "**Steps:**\n\n"
@@ -884,7 +897,13 @@ class SparxDocGenerator:
                 for scenario_type, scenarios in scenarios_by_type.items():
                     if scenario_type not in ['Basic Path', 'Alternate', 'Exception']:
                         for scenario in scenarios:
-                            uc_content += f"## {scenario.scenario_type}: {scenario.name}\n\n"
+                            # Prefix with step level if available
+                            if scenario.ea_guid in guid_to_level:
+                                level_prefix = guid_to_level[scenario.ea_guid] + " "
+                            else:
+                                level_prefix = ""
+
+                            uc_content += f"## {level_prefix}{scenario.scenario_type}: {scenario.name}\n\n"
 
                             if scenario.steps:
                                 uc_content += "**Steps:**\n\n"
