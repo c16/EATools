@@ -864,7 +864,13 @@ class SparxDocGenerator:
                 # Display scenarios organized by type
                 for scenario_type in ['Basic Path', 'Alternate', 'Exception']:
                     if scenario_type in scenarios_by_type:
-                        for scenario in scenarios_by_type[scenario_type]:
+                        # Sort scenarios by their step level
+                        sorted_scenarios = sorted(
+                            scenarios_by_type[scenario_type],
+                            key=lambda s: guid_to_level.get(s.ea_guid, '0') if s.ea_guid else '0'
+                        )
+
+                        for scenario in sorted_scenarios:
                             # For Alternate/Exception, prefix with step level if available
                             if scenario.scenario_type in ['Alternate', 'Exception'] and scenario.ea_guid in guid_to_level:
                                 level_prefix = guid_to_level[scenario.ea_guid] + " "
@@ -896,7 +902,13 @@ class SparxDocGenerator:
                 # Display any other scenario types not in the standard list
                 for scenario_type, scenarios in scenarios_by_type.items():
                     if scenario_type not in ['Basic Path', 'Alternate', 'Exception']:
-                        for scenario in scenarios:
+                        # Sort scenarios by their step level
+                        sorted_scenarios = sorted(
+                            scenarios,
+                            key=lambda s: guid_to_level.get(s.ea_guid, '0') if s.ea_guid else '0'
+                        )
+
+                        for scenario in sorted_scenarios:
                             # Prefix with step level if available
                             if scenario.ea_guid in guid_to_level:
                                 level_prefix = guid_to_level[scenario.ea_guid] + " "
