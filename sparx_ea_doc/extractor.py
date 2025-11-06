@@ -88,6 +88,7 @@ class SparxExtractor:
         # Extract use cases
         cursor.execute("""
             SELECT o.Object_ID, o.Name, o.Note, o.Stereotype, o.Scope,
+                   o.Version, o.ModifiedDate, o.ea_guid,
                    p.Name as Package
             FROM t_object o
             LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
@@ -103,7 +104,10 @@ class SparxExtractor:
                 note=row['Note'] or '',
                 stereotype=row['Stereotype'] or '',
                 package_name=row['Package'] or 'Unknown',
-                visibility=row['Scope'] or 'public'
+                visibility=row['Scope'] or 'public',
+                version=row['Version'] or '',
+                modified_date=row['ModifiedDate'] or '',
+                guid=row['ea_guid'] or ''
             )
             self.use_cases.append(element)
             self.elements[element.object_id] = element

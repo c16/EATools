@@ -85,6 +85,18 @@ class UseCaseGenerator:
 
         uc_content += f"**Package:** {uc.package_name}\n\n"
 
+        # Add metadata line (version, modified date, guid)
+        metadata_parts = []
+        if uc.version:
+            metadata_parts.append(f"Version: {uc.version}")
+        if uc.modified_date:
+            metadata_parts.append(f"Modified: {uc.modified_date}")
+        if uc.guid:
+            metadata_parts.append(f"GUID: {uc.guid}")
+
+        if metadata_parts:
+            uc_content += f"**{' | '.join(metadata_parts)}**\n\n"
+
         # Parse structured notes
         sections = uc.parse_structured_note()
 

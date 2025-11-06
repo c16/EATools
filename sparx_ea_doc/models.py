@@ -18,6 +18,9 @@ class Element:
     stereotype: str
     package_name: str
     visibility: str = 'public'
+    version: str = ''
+    modified_date: str = ''
+    guid: str = ''
 
     def clean_note(self) -> str:
         """Remove HTML tags and clean up note text"""
