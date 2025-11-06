@@ -105,32 +105,38 @@ class UseCaseGenerator:
         # Find related actors and use cases
         connectors = self.extractor.get_connectors_for_element(uc.object_id)
 
-        actors_list = []
-        includes = []
-        extends = []
-        associations = []
+        actors_set = set()
+        includes_set = set()
+        extends_set = set()
+        associations_set = set()
 
         for conn in connectors:
             if conn.source_id == uc.object_id:
                 target = self.extractor.elements.get(conn.target_id)
                 if target:
                     if target.object_type == 'Actor':
-                        actors_list.append(target.name)
+                        actors_set.add(target.name)
                     elif target.object_type == 'UseCase':
                         if 'include' in conn.connector_type.lower():
-                            includes.append(target.name)
+                            includes_set.add(target.name)
                         elif 'extend' in conn.connector_type.lower():
-                            extends.append(target.name)
+                            extends_set.add(target.name)
                         else:
-                            associations.append(target.name)
+                            associations_set.add(target.name)
             elif conn.target_id == uc.object_id:
                 source = self.extractor.elements.get(conn.source_id)
                 if source:
                     if source.object_type == 'Actor':
-                        actors_list.append(source.name)
+                        actors_set.add(source.name)
                     elif source.object_type == 'UseCase':
                         if 'extend' in conn.connector_type.lower():
-                            extends.append(source.name)
+                            extends_set.add(source.name)
+
+        # Convert sets to sorted lists
+        actors_list = sorted(actors_set)
+        includes = sorted(includes_set)
+        extends = sorted(extends_set)
+        associations = sorted(associations_set)
 
         if actors_list:
             uc_content += f"**Actors:** {', '.join(actors_list)}\n\n"
