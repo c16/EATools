@@ -208,6 +208,21 @@ class UseCaseGenerator:
 
         return uc_content
 
+    def _format_step_with_uc_references(self, step: str, uc_object_id: int) -> str:
+        """Format a step to use proper UML notation for use case references"""
+        # Replace single angle bracket notation with double angle brackets
+        # The model may have <include>, <extend>, <invoke> etc. which should be <<include>>, <<extend>>, <<invoke>>
+        import re
+
+        # Replace <include> with <<include>>
+        step = re.sub(r'<include>', '<<include>>', step, flags=re.IGNORECASE)
+        # Replace <extend> with <<extend>>
+        step = re.sub(r'<extend>', '<<extend>>', step, flags=re.IGNORECASE)
+        # Replace <invoke> with <<invoke>>
+        step = re.sub(r'<invoke>', '<<invoke>>', step, flags=re.IGNORECASE)
+
+        return step
+
     def _generate_scenarios_section(self, object_id: int) -> str:
         """Generate scenarios section for a use case"""
         content = ""
@@ -247,12 +262,13 @@ class UseCaseGenerator:
                     else:
                         level_prefix = ""
 
-                    content += f"## {level_prefix}{scenario.scenario_type}: {scenario.name}\n\n"
+                    content += f"### {level_prefix}{scenario.scenario_type}: {scenario.name}\n\n"
 
                     if scenario.steps:
                         content += "**Steps:**\n\n"
                         for idx, step in enumerate(scenario.steps, 1):
-                            content += f"{idx}. {step}\n"
+                            formatted_step = self._format_step_with_uc_references(step, object_id)
+                            content += f"{idx}. {formatted_step}\n"
 
                             # Check if this step has extensions (for Basic Path)
                             if scenario.scenario_type == 'Basic Path':
@@ -285,12 +301,13 @@ class UseCaseGenerator:
                     else:
                         level_prefix = ""
 
-                    content += f"## {level_prefix}{scenario.scenario_type}: {scenario.name}\n\n"
+                    content += f"### {level_prefix}{scenario.scenario_type}: {scenario.name}\n\n"
 
                     if scenario.steps:
                         content += "**Steps:**\n\n"
                         for idx, step in enumerate(scenario.steps, 1):
-                            content += f"{idx}. {step}\n"
+                            formatted_step = self._format_step_with_uc_references(step, object_id)
+                            content += f"{idx}. {formatted_step}\n"
 
                             # Check if this step has extensions
                             for ext_step_idx, ext_level, ext_guid in scenario.extensions:
