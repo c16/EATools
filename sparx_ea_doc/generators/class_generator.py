@@ -74,6 +74,19 @@ class ClassGenerator:
             class_content += f"**Stereotype:** <<{cls.stereotype}>>\n\n"
 
         class_content += f"**Package:** {cls.package_name}\n\n"
+
+        # Add metadata line (version, modified date, guid)
+        metadata_parts = []
+        if cls.version:
+            metadata_parts.append(f"Version: {cls.version}")
+        if cls.modified_date:
+            metadata_parts.append(f"Modified: {cls.modified_date}")
+        if cls.guid:
+            metadata_parts.append(f"GUID: {cls.guid}")
+
+        if metadata_parts:
+            class_content += f"**{' | '.join(metadata_parts)}**\n\n"
+
         class_content += f"**Description:** {cls.clean_note() or 'No description available'}\n\n"
 
         # Get inheritance and relationships
