@@ -74,7 +74,6 @@ class ClassGenerator:
             class_content += f"**Stereotype:** <<{cls.stereotype}>>\n\n"
 
         class_content += f"**Package:** {cls.package_name}\n\n"
-        class_content += f"**Visibility:** {cls.visibility}\n\n"
         class_content += f"**Description:** {cls.clean_note() or 'No description available'}\n\n"
 
         # Get inheritance and relationships
@@ -115,36 +114,35 @@ class ClassGenerator:
                     if target:
                         dependencies.append(target.name)
 
-        # Attributes section
+        # Attributes section (public only)
         if cls.object_id in self.extractor.attributes:
-            attrs = self.extractor.attributes[cls.object_id]
-            class_content += "## Attributes\n\n"
-            class_content += "| Name | Type | Visibility | Default | Static | Const | Description |\n"
-            class_content += "|------|------|------------|---------|--------|-------|-------------|\n"
+            attrs = [attr for attr in self.extractor.attributes[cls.object_id] if attr.scope.lower() == 'public']
+            if attrs:
+                class_content += "## Attributes\n\n"
+                class_content += "| Name | Type | Default | Const | Description |\n"
+                class_content += "|------|------|---------|-------|-------------|\n"
 
-            for attr in attrs:
-                static_flag = 'Yes' if attr.is_static else 'No'
-                const_flag = 'Yes' if attr.is_const else 'No'
-                desc = attr.notes or '-'
-                class_content += f"| {attr.name} | {attr.attr_type} | {attr.scope} | {attr.default or '-'} | {static_flag} | {const_flag} | {desc} |\n"
+                for attr in attrs:
+                    const_flag = 'Yes' if attr.is_const else 'No'
+                    desc = attr.notes or '-'
+                    class_content += f"| {attr.name} | {attr.attr_type} | {attr.default or '-'} | {const_flag} | {desc} |\n"
 
-            class_content += "\n"
+                class_content += "\n"
 
-        # Operations section
+        # Operations section (public only)
         if cls.object_id in self.extractor.operations:
-            ops = self.extractor.operations[cls.object_id]
-            class_content += "## Methods\n\n"
-            class_content += "| Name | Parameters | Return Type | Visibility | Abstract | Static | Description |\n"
-            class_content += "|------|------------|-------------|------------|----------|--------|-------------|\n"
+            ops = [op for op in self.extractor.operations[cls.object_id] if op.scope.lower() == 'public']
+            if ops:
+                class_content += "## Methods\n\n"
+                class_content += "| Name | Parameters | Return Type | Description |\n"
+                class_content += "|------|------------|-------------|-------------|\n"
 
-            for op in ops:
-                params_str = ', '.join([f"{name}: {ptype}" for name, ptype in op.parameters]) or '-'
-                abstract_flag = 'Yes' if op.is_abstract else 'No'
-                static_flag = 'Yes' if op.is_static else 'No'
-                desc = op.notes or '-'
-                class_content += f"| {op.name} | {params_str} | {op.return_type} | {op.scope} | {abstract_flag} | {static_flag} | {desc} |\n"
+                for op in ops:
+                    params_str = ', '.join([f"{name}: {ptype}" for name, ptype in op.parameters]) or '-'
+                    desc = op.notes or '-'
+                    class_content += f"| {op.name} | {params_str} | {op.return_type} | {desc} |\n"
 
-            class_content += "\n"
+                class_content += "\n"
 
         # Relationships section
         if inherits_from or implements or associations or dependencies:
