@@ -51,3 +51,6 @@ test_model.qea
 
 # Local configuration overrides
 local_config.yaml
+
+# Old backup files
+*_old.py

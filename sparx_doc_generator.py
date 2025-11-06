@@ -6,18 +6,21 @@ This utility extracts and documents UML models from Sparx Enterprise Architect
 .qea files (SQLite database format) and generates comprehensive markdown documentation.
 """
 
-import sqlite3
 import json
-import re
-import html
 import argparse
 import logging
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass, field
-from collections import defaultdict
+from typing import Dict, Optional
+
+from sparx_ea_doc.extractor import SparxExtractor
+from sparx_ea_doc.generators import (
+    UseCaseGenerator,
+    StateMachineGenerator,
+    ComponentGenerator,
+    ClassGenerator
+)
+from sparx_ea_doc.quality_reporter import QualityReporter
 
 
 # Configure logging
@@ -28,163 +31,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class Element:
-    """Base class for model elements"""
-    object_id: int
-    name: str
-    object_type: str
-    note: str
-    stereotype: str
-    package_name: str
-    visibility: str = 'public'
-
-    def clean_note(self) -> str:
-        """Remove HTML tags and clean up note text"""
-        if not self.note:
-            return ""
-        # Remove HTML tags
-        text = re.sub(r'<[^>]+>', '', self.note)
-        # Decode HTML entities
-        text = html.unescape(text)
-        # Clean up whitespace
-        text = re.sub(r'\s+', ' ', text).strip()
-        return text
-
-    def parse_structured_note(self) -> Dict[str, str]:
-        """
-        Parse notes field for structured sections like:
-        - Preconditions / Pre-conditions
-        - Postconditions / Post-conditions
-        - Main Flow / Scenario
-        - Alternative Flows
-        - Business Rules
-        Returns dict with section names as keys
-        """
-        if not self.note:
-            return {}
-
-        # Remove HTML tags but keep structure
-        text = re.sub(r'<[^>]+>', '', self.note)
-        text = html.unescape(text)
-
-        sections = {}
-        current_section = None
-        current_content = []
-
-        # Common section headers to look for (case-insensitive)
-        section_patterns = [
-            (r'^(pre[-\s]?conditions?):?\s*$', 'Preconditions'),
-            (r'^(post[-\s]?conditions?):?\s*$', 'Postconditions'),
-            (r'^(main\s+flow):?\s*$', 'Main Flow'),
-            (r'^(basic\s+flow):?\s*$', 'Main Flow'),
-            (r'^(scenarios?):?\s*$', 'Scenarios'),
-            (r'^(alternative\s+flows?):?\s*$', 'Alternative Flows'),
-            (r'^(business\s+rules?):?\s*$', 'Business Rules'),
-            (r'^(exceptions?):?\s*$', 'Exceptions'),
-            (r'^(description):?\s*$', 'Description'),
-        ]
-
-        lines = text.split('\n')
-
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-
-            # Check if this line is a section header
-            is_header = False
-            for pattern, section_name in section_patterns:
-                if re.match(pattern, line, re.IGNORECASE):
-                    # Save previous section if any
-                    if current_section and current_content:
-                        sections[current_section] = '\n'.join(current_content).strip()
-                    current_section = section_name
-                    current_content = []
-                    is_header = True
-                    break
-
-            if not is_header:
-                if current_section:
-                    current_content.append(line)
-                else:
-                    # Content before any section header goes to Description
-                    if 'Description' not in sections:
-                        sections['Description'] = line
-                    else:
-                        sections['Description'] += '\n' + line
-
-        # Save last section
-        if current_section and current_content:
-            sections[current_section] = '\n'.join(current_content).strip()
-
-        return sections
-
-
-@dataclass
-class Attribute:
-    """Class/component attribute"""
-    name: str
-    attr_type: str
-    scope: str  # Public, Private, Protected
-    default: str
-    notes: str
-    is_static: bool
-    is_const: bool
-    pos: int
-
-
-@dataclass
-class Operation:
-    """Class/component operation/method"""
-    name: str
-    return_type: str
-    scope: str
-    is_abstract: bool
-    is_static: bool
-    notes: str
-    parameters: List[Tuple[str, str]] = field(default_factory=list)  # [(name, type), ...]
-
-
-@dataclass
-class Connector:
-    """Relationship between elements"""
-    connector_id: int
-    connector_type: str
-    source_id: int
-    target_id: int
-    source_name: str
-    target_name: str
-    source_card: str
-    target_card: str
-    source_role: str
-    target_role: str
-    notes: str
-    trigger: str = ''
-    guard: str = ''
-
-
-@dataclass
-class Scenario:
-    """Use case scenario"""
-    name: str
-    scenario_type: str  # Basic Path, Exception, Alternate, etc.
-    steps: List[str] = field(default_factory=list)
-    notes: str = ''
-    ea_guid: str = ''
-    extensions: List[Tuple[int, str, str]] = field(default_factory=list)  # [(step_index, level, extension_guid), ...]
-
-
-@dataclass
-class Constraint:
-    """Object constraint (pre-condition, post-condition, etc.)"""
-    name: str
-    constraint_type: str  # Pre-condition, Post-condition, etc.
-    notes: str = ''
-
-
 class SparxDocGenerator:
-    """Main documentation generator class"""
+    """Main documentation generator orchestrator"""
 
     def __init__(self, qea_path: str, output_dir: str = "docs", config: Optional[Dict] = None):
         """
@@ -198,32 +46,6 @@ class SparxDocGenerator:
         self.qea_path = Path(qea_path)
         self.output_dir = Path(output_dir)
         self.config = config or {}
-        self.conn: Optional[sqlite3.Connection] = None
-
-        # Data storage
-        self.elements: Dict[int, Element] = {}
-        self.use_cases: List[Element] = []
-        self.actors: List[Element] = []
-        self.state_machines: List[Element] = []
-        self.states: Dict[int, List[Element]] = defaultdict(list)
-        self.components: List[Element] = []
-        self.classes: List[Element] = []
-        self.interfaces: List[Element] = []
-        self.enumerations: List[Element] = []
-        self.attributes: Dict[int, List[Attribute]] = defaultdict(list)
-        self.operations: Dict[int, List[Operation]] = defaultdict(list)
-        self.connectors: List[Connector] = []
-        self.scenarios: Dict[int, List[Scenario]] = defaultdict(list)
-        self.constraints: Dict[int, List[Constraint]] = defaultdict(list)
-        self.packages: Dict[int, str] = {}
-
-        # Quality metrics
-        self.quality_metrics: Dict[str, Any] = {
-            'undocumented': [],
-            'orphaned': [],
-            'missing_relationships': [],
-            'total_elements': 0
-        }
 
         if not self.qea_path.exists():
             raise FileNotFoundError(f"QEA file not found: {self.qea_path}")
@@ -231,24 +53,11 @@ class SparxDocGenerator:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Initialized SparxDocGenerator for {self.qea_path}")
 
-    def connect_db(self) -> sqlite3.Connection:
-        """Establish connection to the SQLite database"""
-        try:
-            self.conn = sqlite3.connect(self.qea_path)
-            self.conn.row_factory = sqlite3.Row
-            logger.info("Database connection established")
-            return self.conn
-        except sqlite3.Error as e:
-            logger.error(f"Database connection error: {e}")
-            raise
+        # Initialize components
+        self.extractor = SparxExtractor(self.qea_path)
+        self.quality_reporter = QualityReporter(self.extractor, self.output_dir, self.config)
 
-    def close_db(self):
-        """Close database connection"""
-        if self.conn:
-            self.conn.close()
-            logger.info("Database connection closed")
-
-    def analyze_schema(self) -> Dict[str, Any]:
+    def analyze_schema(self) -> Dict:
         """
         Analyze and document the database schema
 
@@ -261,1298 +70,80 @@ class SparxDocGenerator:
             'analysis_date': datetime.now().isoformat()
         }
 
-        cursor = self.conn.cursor()
+        self.extractor.connect_db()
 
-        # Get all tables
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
-        tables = [row[0] for row in cursor.fetchall()]
+        try:
+            cursor = self.extractor.conn.cursor()
 
-        for table in tables:
-            # Get table info
-            cursor.execute(f"PRAGMA table_info({table})")
-            columns = []
-            for col in cursor.fetchall():
-                columns.append({
-                    'name': col[1],
-                    'type': col[2],
-                    'notnull': bool(col[3]),
-                    'default': col[4],
-                    'pk': bool(col[5])
-                })
+            # Get all tables
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+            tables = [row[0] for row in cursor.fetchall()]
 
-            # Get row count
-            cursor.execute(f"SELECT COUNT(*) FROM {table}")
-            row_count = cursor.fetchone()[0]
+            for table in tables:
+                # Get table info
+                cursor.execute(f"PRAGMA table_info({table})")
+                columns = []
+                for col in cursor.fetchall():
+                    columns.append({
+                        'name': col[1],
+                        'type': col[2],
+                        'notnull': bool(col[3]),
+                        'default': col[4],
+                        'pk': bool(col[5])
+                    })
 
-            schema_info['tables'][table] = {
-                'columns': columns,
-                'row_count': row_count
-            }
+                # Get row count
+                cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                row_count = cursor.fetchone()[0]
 
-        # Save schema to file
-        schema_file = self.output_dir / 'schema.json'
-        with open(schema_file, 'w') as f:
-            json.dump(schema_info, f, indent=2)
+                schema_info['tables'][table] = {
+                    'columns': columns,
+                    'row_count': row_count
+                }
 
-        logger.info(f"Schema analysis complete. Found {len(tables)} tables.")
-        logger.info(f"Schema saved to {schema_file}")
+            # Save schema to file
+            schema_file = self.output_dir / 'schema.json'
+            with open(schema_file, 'w') as f:
+                json.dump(schema_info, f, indent=2)
+
+            logger.info(f"Schema analysis complete. Found {len(tables)} tables.")
+            logger.info(f"Schema saved to {schema_file}")
+
+        finally:
+            self.extractor.close_db()
 
         return schema_info
 
-    def extract_packages(self):
-        """Extract package information"""
-        logger.info("Extracting packages...")
-        cursor = self.conn.cursor()
-
-        cursor.execute("""
-            SELECT Package_ID, Name, Parent_ID
-            FROM t_package
-            ORDER BY Name
-        """)
-
-        for row in cursor.fetchall():
-            package_id = row['Package_ID']
-            package_name = row['Name']
-            self.packages[package_id] = package_name
-
-        logger.info(f"Extracted {len(self.packages)} packages")
-
-    def extract_use_cases(self):
-        """Extract use cases and actors"""
-        logger.info("Extracting use cases and actors...")
-        cursor = self.conn.cursor()
-
-        # Extract use cases
-        cursor.execute("""
-            SELECT o.Object_ID, o.Name, o.Note, o.Stereotype, o.Scope,
-                   p.Name as Package
-            FROM t_object o
-            LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
-            WHERE o.Object_Type = 'UseCase'
-            ORDER BY o.Object_ID
-        """)
-
-        for row in cursor.fetchall():
-            element = Element(
-                object_id=row['Object_ID'],
-                name=row['Name'],
-                object_type='UseCase',
-                note=row['Note'] or '',
-                stereotype=row['Stereotype'] or '',
-                package_name=row['Package'] or 'Unknown',
-                visibility=row['Scope'] or 'public'
-            )
-            self.use_cases.append(element)
-            self.elements[element.object_id] = element
-
-        # Extract actors
-        cursor.execute("""
-            SELECT o.Object_ID, o.Name, o.Note, o.Stereotype, o.Scope,
-                   p.Name as Package
-            FROM t_object o
-            LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
-            WHERE o.Object_Type = 'Actor'
-            ORDER BY o.Object_ID
-        """)
-
-        for row in cursor.fetchall():
-            element = Element(
-                object_id=row['Object_ID'],
-                name=row['Name'],
-                object_type='Actor',
-                note=row['Note'] or '',
-                stereotype=row['Stereotype'] or '',
-                package_name=row['Package'] or 'Unknown',
-                visibility=row['Scope'] or 'public'
-            )
-            self.actors.append(element)
-            self.elements[element.object_id] = element
-
-        logger.info(f"Extracted {len(self.use_cases)} use cases and {len(self.actors)} actors")
-
-    def extract_state_machines(self):
-        """Extract state machines and states"""
-        logger.info("Extracting state machines...")
-        cursor = self.conn.cursor()
-
-        # Extract state machine diagrams (these are the main organizational units)
-        cursor.execute("""
-            SELECT d.Diagram_ID, d.Name, d.Notes, d.Package_ID,
-                   p.Name as Package
-            FROM t_diagram d
-            LEFT JOIN t_package p ON d.Package_ID = p.Package_ID
-            WHERE d.Diagram_Type = 'Statechart'
-            ORDER BY d.Name
-        """)
-
-        diagram_to_sm = {}
-        for row in cursor.fetchall():
-            # Create a pseudo-element for the state machine diagram
-            element = Element(
-                object_id=row['Diagram_ID'],  # Using diagram ID as object ID
-                name=row['Name'],
-                object_type='StateMachine',
-                note=row['Notes'] or '',
-                stereotype='',
-                package_name=row['Package'] or 'Unknown',
-                visibility='public'
-            )
-            self.state_machines.append(element)
-            diagram_to_sm[row['Diagram_ID']] = element
-            # Note: Not adding to self.elements since Diagram_ID != Object_ID
-
-        # Extract objects on each state machine diagram
-        cursor.execute("""
-            SELECT do.Diagram_ID, do.Object_ID,
-                   o.Name, o.Note, o.Stereotype, o.Scope, o.Object_Type, o.ParentID,
-                   p.Name as Package
-            FROM t_diagramobjects do
-            JOIN t_diagram d ON do.Diagram_ID = d.Diagram_ID
-            JOIN t_object o ON do.Object_ID = o.Object_ID
-            LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
-            WHERE d.Diagram_Type = 'Statechart'
-            ORDER BY do.Diagram_ID, o.Name
-        """)
-
-        for row in cursor.fetchall():
-            element = Element(
-                object_id=row['Object_ID'],
-                name=row['Name'],
-                object_type=row['Object_Type'],
-                note=row['Note'] or '',
-                stereotype=row['Stereotype'] or '',
-                package_name=row['Package'] or 'Unknown',
-                visibility=row['Scope'] or 'public'
-            )
-
-            # Group states by their diagram
-            diagram_id = row['Diagram_ID']
-            self.states[diagram_id].append(element)
-            self.elements[element.object_id] = element
-
-        logger.info(f"Extracted {len(self.state_machines)} state machines")
-
-    def extract_components(self):
-        """Extract components"""
-        logger.info("Extracting components...")
-        cursor = self.conn.cursor()
-
-        cursor.execute("""
-            SELECT o.Object_ID, o.Name, o.Note, o.Stereotype, o.Scope,
-                   p.Name as Package
-            FROM t_object o
-            LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
-            WHERE o.Object_Type = 'Component'
-            ORDER BY o.Name
-        """)
-
-        for row in cursor.fetchall():
-            element = Element(
-                object_id=row['Object_ID'],
-                name=row['Name'],
-                object_type='Component',
-                note=row['Note'] or '',
-                stereotype=row['Stereotype'] or '',
-                package_name=row['Package'] or 'Unknown',
-                visibility=row['Scope'] or 'public'
-            )
-            self.components.append(element)
-            self.elements[element.object_id] = element
-
-        logger.info(f"Extracted {len(self.components)} components")
-
-    def extract_classes(self):
-        """Extract classes, interfaces, and enumerations"""
-        logger.info("Extracting classes, interfaces, and enumerations...")
-        cursor = self.conn.cursor()
-
-        # Extract classes
-        cursor.execute("""
-            SELECT o.Object_ID, o.Name, o.Note, o.Stereotype, o.Scope,
-                   o.[Abstract],
-                   p.Name as Package
-            FROM t_object o
-            LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
-            WHERE o.Object_Type = 'Class'
-            ORDER BY o.Name
-        """)
-
-        for row in cursor.fetchall():
-            element = Element(
-                object_id=row['Object_ID'],
-                name=row['Name'],
-                object_type='Class',
-                note=row['Note'] or '',
-                stereotype=row['Stereotype'] or '',
-                package_name=row['Package'] or 'Unknown',
-                visibility=row['Scope'] or 'public'
-            )
-            self.classes.append(element)
-            self.elements[element.object_id] = element
-
-        # Extract interfaces
-        cursor.execute("""
-            SELECT o.Object_ID, o.Name, o.Note, o.Stereotype, o.Scope,
-                   p.Name as Package
-            FROM t_object o
-            LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
-            WHERE o.Object_Type = 'Interface'
-            ORDER BY o.Name
-        """)
-
-        for row in cursor.fetchall():
-            element = Element(
-                object_id=row['Object_ID'],
-                name=row['Name'],
-                object_type='Interface',
-                note=row['Note'] or '',
-                stereotype=row['Stereotype'] or '',
-                package_name=row['Package'] or 'Unknown',
-                visibility=row['Scope'] or 'public'
-            )
-            self.interfaces.append(element)
-            self.elements[element.object_id] = element
-
-        # Extract enumerations
-        cursor.execute("""
-            SELECT o.Object_ID, o.Name, o.Note, o.Stereotype, o.Scope,
-                   p.Name as Package
-            FROM t_object o
-            LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
-            WHERE o.Object_Type = 'Enumeration'
-            ORDER BY o.Name
-        """)
-
-        for row in cursor.fetchall():
-            element = Element(
-                object_id=row['Object_ID'],
-                name=row['Name'],
-                object_type='Enumeration',
-                note=row['Note'] or '',
-                stereotype=row['Stereotype'] or '',
-                package_name=row['Package'] or 'Unknown',
-                visibility=row['Scope'] or 'public'
-            )
-            self.enumerations.append(element)
-            self.elements[element.object_id] = element
-
-        logger.info(f"Extracted {len(self.classes)} classes, {len(self.interfaces)} interfaces, "
-                   f"and {len(self.enumerations)} enumerations")
-
-    def extract_attributes(self):
-        """Extract attributes for classes and components"""
-        logger.info("Extracting attributes...")
-        cursor = self.conn.cursor()
-
-        cursor.execute("""
-            SELECT Object_ID, Name, [Type], Scope, [Default], Notes,
-                   IsStatic, Const, Pos
-            FROM t_attribute
-            ORDER BY Object_ID, Pos
-        """)
-
-        for row in cursor.fetchall():
-            attr = Attribute(
-                name=row['Name'],
-                attr_type=row['Type'] or 'unknown',
-                scope=row['Scope'] or 'Public',
-                default=row['Default'] or '',
-                notes=row['Notes'] or '',
-                is_static=bool(row['IsStatic']),
-                is_const=bool(row['Const']),
-                pos=row['Pos'] or 0
-            )
-            self.attributes[row['Object_ID']].append(attr)
-
-        logger.info(f"Extracted attributes for {len(self.attributes)} objects")
-
-    def extract_operations(self):
-        """Extract operations/methods for classes and components"""
-        logger.info("Extracting operations...")
-        cursor = self.conn.cursor()
-
-        cursor.execute("""
-            SELECT OperationID, Object_ID, Name, [Type], Scope,
-                   [Abstract], IsStatic, Notes
-            FROM t_operation
-            ORDER BY Object_ID, Name
-        """)
-
-        operations_data = {}
-        for row in cursor.fetchall():
-            op = Operation(
-                name=row['Name'],
-                return_type=row['Type'] or 'void',
-                scope=row['Scope'] or 'Public',
-                is_abstract=bool(row['Abstract']),
-                is_static=bool(row['IsStatic']),
-                notes=row['Notes'] or ''
-            )
-            operations_data[row['OperationID']] = (row['Object_ID'], op)
-
-        # Extract operation parameters
-        cursor.execute("""
-            SELECT OperationID, Name, [Type], Kind
-            FROM t_operationparams
-            ORDER BY OperationID, Pos
-        """)
-
-        for row in cursor.fetchall():
-            op_id = row['OperationID']
-            if op_id in operations_data:
-                kind = row['Kind'] or 'in'
-                if kind.lower() != 'return':  # Skip return type parameters
-                    obj_id, op = operations_data[op_id]
-                    op.parameters.append((row['Name'], row['Type'] or 'unknown'))
-
-        # Organize by object
-        for obj_id, op in operations_data.values():
-            self.operations[obj_id].append(op)
-
-        logger.info(f"Extracted operations for {len(self.operations)} objects")
-
-    def extract_connectors(self):
-        """Extract relationships between elements"""
-        logger.info("Extracting connectors/relationships...")
-        cursor = self.conn.cursor()
-
-        cursor.execute("""
-            SELECT c.Connector_ID, c.Connector_Type,
-                   c.Start_Object_ID, c.End_Object_ID,
-                   c.SourceCard, c.DestCard,
-                   c.SourceRole, c.DestRole,
-                   c.Notes, c.PDATA1, c.PDATA2,
-                   o1.Name as SourceName, o1.Object_Type as SourceType,
-                   o2.Name as TargetName, o2.Object_Type as TargetType
-            FROM t_connector c
-            LEFT JOIN t_object o1 ON c.Start_Object_ID = o1.Object_ID
-            LEFT JOIN t_object o2 ON c.End_Object_ID = o2.Object_ID
-            ORDER BY c.Connector_ID
-        """)
-
-        for row in cursor.fetchall():
-            connector = Connector(
-                connector_id=row['Connector_ID'],
-                connector_type=row['Connector_Type'],
-                source_id=row['Start_Object_ID'],
-                target_id=row['End_Object_ID'],
-                source_name=row['SourceName'] or 'Unknown',
-                target_name=row['TargetName'] or 'Unknown',
-                source_card=row['SourceCard'] or '',
-                target_card=row['DestCard'] or '',
-                source_role=row['SourceRole'] or '',
-                target_role=row['DestRole'] or '',
-                notes=row['Notes'] or '',
-                trigger=row['PDATA1'] or '',
-                guard=row['PDATA2'] or ''
-            )
-            self.connectors.append(connector)
-
-        logger.info(f"Extracted {len(self.connectors)} connectors")
-
-    def extract_scenarios(self):
-        """Extract scenarios for use cases"""
-        logger.info("Extracting scenarios...")
-        cursor = self.conn.cursor()
-
-        cursor.execute("""
-            SELECT Object_ID, Scenario, ScenarioType, Notes, XMLContent, ea_guid
-            FROM t_objectscenarios
-            ORDER BY Object_ID, Scenario
-        """)
-
-        for row in cursor.fetchall():
-            object_id = row['Object_ID']
-            scenario_name = row['Scenario']
-            scenario_type = row['ScenarioType']
-            notes = row['Notes'] or ''
-            xml_content = row['XMLContent']
-            ea_guid = row['ea_guid'] or ''
-
-            steps = []
-            extensions = []
-            if xml_content:
-                try:
-                    # Parse XML to extract steps and extensions
-                    root = ET.fromstring(xml_content)
-                    step_index = 0
-                    for step_elem in root.findall('step'):  # Direct children only
-                        step_name = step_elem.get('name', '')
-                        if step_name:
-                            # Decode HTML entities in step name
-                            step_name = html.unescape(step_name)
-                            steps.append(step_name)
-
-                            # Check for extension elements
-                            for ext_elem in step_elem.findall('extension'):
-                                ext_level = ext_elem.get('level', '')
-                                ext_guid = ext_elem.get('guid', '')
-                                if ext_level and ext_guid:
-                                    extensions.append((step_index, ext_level, ext_guid))
-
-                            step_index += 1
-                except ET.ParseError as e:
-                    logger.warning(f"Failed to parse XML for scenario '{scenario_name}': {e}")
-
-            scenario = Scenario(
-                name=scenario_name,
-                scenario_type=scenario_type,
-                steps=steps,
-                notes=notes,
-                ea_guid=ea_guid,
-                extensions=extensions
-            )
-            self.scenarios[object_id].append(scenario)
-
-        total_scenarios = sum(len(scenarios) for scenarios in self.scenarios.values())
-        logger.info(f"Extracted {total_scenarios} scenarios for {len(self.scenarios)} objects")
-
-    def extract_constraints(self):
-        """Extract constraints (pre-conditions, post-conditions, etc.)"""
-        logger.info("Extracting constraints...")
-        cursor = self.conn.cursor()
-
-        cursor.execute("""
-            SELECT Object_ID, [Constraint], ConstraintType, Notes
-            FROM t_objectconstraint
-            ORDER BY Object_ID, ConstraintType, [Constraint]
-        """)
-
-        for row in cursor.fetchall():
-            object_id = row['Object_ID']
-            constraint_name = row['Constraint']
-            constraint_type = row['ConstraintType']
-            notes = row['Notes'] or ''
-
-            constraint = Constraint(
-                name=constraint_name,
-                constraint_type=constraint_type,
-                notes=notes
-            )
-            self.constraints[object_id].append(constraint)
-
-        total_constraints = sum(len(constraints) for constraints in self.constraints.values())
-        logger.info(f"Extracted {total_constraints} constraints for {len(self.constraints)} objects")
-
     def extract_model_data(self):
-        """Main extraction orchestrator"""
+        """Extract all model data from the database"""
         logger.info("Starting model data extraction...")
-
-        self.connect_db()
-
-        try:
-            self.extract_packages()
-            self.extract_use_cases()
-            self.extract_state_machines()
-            self.extract_components()
-            self.extract_classes()
-            self.extract_attributes()
-            self.extract_operations()
-            self.extract_connectors()
-            self.extract_scenarios()
-            self.extract_constraints()
-
-            self.quality_metrics['total_elements'] = len(self.elements)
-            logger.info(f"Extraction complete. Total elements: {len(self.elements)}")
-
-        except Exception as e:
-            logger.error(f"Error during extraction: {e}")
-            raise
-        finally:
-            self.close_db()
-
-    def get_connectors_for_element(self, element_id: int, connector_type: Optional[str] = None) -> List[Connector]:
-        """Get all connectors involving a specific element"""
-        connectors = []
-        for conn in self.connectors:
-            if conn.source_id == element_id or conn.target_id == element_id:
-                if connector_type is None or conn.connector_type == connector_type:
-                    connectors.append(conn)
-        return connectors
-
-    def generate_use_case_docs(self):
-        """Generate use case documentation"""
-        logger.info("Generating use case documentation...")
-
-        uc_dir = self.output_dir / 'use-cases'
-        uc_dir.mkdir(exist_ok=True)
-
-        # Generate actors documentation
-        actors_content = "# Actors\n\n"
-        actors_content += "This document lists all actors in the system.\n\n"
-
-        for actor in self.actors:
-            actors_content += f"## {actor.name}\n\n"
-            if actor.stereotype:
-                actors_content += f"**Stereotype:** <<{actor.stereotype}>>\n\n"
-            actors_content += f"**Description:** {actor.clean_note() or 'No description available'}\n\n"
-            actors_content += "---\n\n"
-
-        with open(uc_dir / 'actors.md', 'w') as f:
-            f.write(actors_content)
-
-        # Generate individual use case documents
-        uc_index_content = "# Use Cases\n\n"
-        uc_index_content += "This document provides an overview of all use cases in the system.\n\n"
-        uc_index_content += "## Use Case List\n\n"
-
-        for uc in self.use_cases:
-            uc_filename = f"{uc.name.lower().replace(' ', '-')}.md"
-
-            # Add to index
-            uc_index_content += f"- [{uc.name}]({uc_filename})\n"
-
-            # Generate individual use case file
-            uc_content = f"# {uc.name}\n\n"
-
-            if uc.stereotype:
-                uc_content += f"**Stereotype:** <<{uc.stereotype}>>\n\n"
-
-            uc_content += f"**Package:** {uc.package_name}\n\n"
-
-            # Parse structured notes
-            sections = uc.parse_structured_note()
-
-            # Description - only show if there's content not in other sections
-            has_structured_sections = any(key in sections for key in ['Preconditions', 'Postconditions',
-                                                                       'Main Flow', 'Scenarios',
-                                                                       'Alternative Flows', 'Business Rules',
-                                                                       'Exceptions'])
-
-            if 'Description' in sections and sections['Description']:
-                uc_content += f"**Description:** {sections['Description']}\n\n"
-            elif not has_structured_sections and uc.clean_note():
-                # If no structured sections found, show the whole note as description
-                uc_content += f"**Description:** {uc.clean_note()}\n\n"
-            elif not has_structured_sections:
-                uc_content += "**Description:** No description available\n\n"
-
-            # Find related actors and use cases
-            connectors = self.get_connectors_for_element(uc.object_id)
-
-            actors_list = []
-            includes = []
-            extends = []
-            associations = []
-
-            for conn in connectors:
-                if conn.source_id == uc.object_id:
-                    target = self.elements.get(conn.target_id)
-                    if target:
-                        if target.object_type == 'Actor':
-                            actors_list.append(target.name)
-                        elif target.object_type == 'UseCase':
-                            if 'include' in conn.connector_type.lower():
-                                includes.append(target.name)
-                            elif 'extend' in conn.connector_type.lower():
-                                extends.append(target.name)
-                            else:
-                                associations.append(target.name)
-                elif conn.target_id == uc.object_id:
-                    source = self.elements.get(conn.source_id)
-                    if source:
-                        if source.object_type == 'Actor':
-                            actors_list.append(source.name)
-                        elif source.object_type == 'UseCase':
-                            if 'extend' in conn.connector_type.lower():
-                                extends.append(source.name)
-
-            if actors_list:
-                uc_content += f"**Actors:** {', '.join(actors_list)}\n\n"
-
-            if includes:
-                uc_content += "**Includes:**\n"
-                for inc in includes:
-                    uc_content += f"- <<include>> {inc}\n"
-                uc_content += "\n"
-
-            if extends:
-                uc_content += "**Extended by:**\n"
-                for ext in extends:
-                    uc_content += f"- <<extend>> {ext}\n"
-                uc_content += "\n"
-
-            if associations:
-                uc_content += "**Related Use Cases:**\n"
-                for assoc in associations:
-                    uc_content += f"- {assoc}\n"
-                uc_content += "\n"
-
-            # Add pre-conditions and post-conditions from constraints table
-            if uc.object_id in self.constraints:
-                preconditions = [c for c in self.constraints[uc.object_id] if c.constraint_type == 'Pre-condition']
-                postconditions = [c for c in self.constraints[uc.object_id] if c.constraint_type == 'Post-condition']
-
-                if preconditions:
-                    uc_content += "## Preconditions\n\n"
-                    for pc in preconditions:
-                        uc_content += f"**{pc.name}**\n\n"
-                        if pc.notes:
-                            uc_content += f"{pc.notes}\n\n"
-
-                if postconditions:
-                    uc_content += "## Postconditions\n\n"
-                    for pc in postconditions:
-                        uc_content += f"**{pc.name}**\n\n"
-                        if pc.notes:
-                            uc_content += f"{pc.notes}\n\n"
-
-            # Add structured sections from notes (excluding Preconditions/Postconditions if already shown from constraints)
-            section_order = ['Preconditions', 'Postconditions', 'Main Flow', 'Scenarios',
-                           'Alternative Flows', 'Business Rules', 'Exceptions']
-
-            # Skip Preconditions/Postconditions from notes if we already added them from constraints
-            has_constraints = uc.object_id in self.constraints
-            preconditions_from_constraints = has_constraints and any(c.constraint_type == 'Pre-condition' for c in self.constraints[uc.object_id])
-            postconditions_from_constraints = has_constraints and any(c.constraint_type == 'Post-condition' for c in self.constraints[uc.object_id])
-
-            for section_name in section_order:
-                # Skip if already shown from constraints
-                if section_name == 'Preconditions' and preconditions_from_constraints:
-                    continue
-                if section_name == 'Postconditions' and postconditions_from_constraints:
-                    continue
-
-                if section_name in sections:
-                    uc_content += f"## {section_name}\n\n"
-                    # Format Business Rules as a bulleted list if they have multiple lines
-                    if section_name == 'Business Rules':
-                        rules = [line.strip() for line in sections[section_name].split('\n') if line.strip()]
-                        if len(rules) > 1:
-                            for rule in rules:
-                                uc_content += f"- {rule}\n"
-                            uc_content += "\n"
-                        else:
-                            uc_content += f"{sections[section_name]}\n\n"
-                    else:
-                        uc_content += f"{sections[section_name]}\n\n"
-
-            # Add scenarios from t_objectscenarios table
-            if uc.object_id in self.scenarios:
-                uc_scenarios = self.scenarios[uc.object_id]
-
-                # Create a GUID-to-scenario mapping for quick lookup
-                guid_to_scenario = {}
-                for scenario in uc_scenarios:
-                    if scenario.ea_guid:
-                        guid_to_scenario[scenario.ea_guid] = scenario
-
-                # Create a GUID-to-level mapping from extensions in Basic Path
-                guid_to_level = {}
-                for scenario in uc_scenarios:
-                    if scenario.scenario_type == 'Basic Path':
-                        for ext_step_idx, ext_level, ext_guid in scenario.extensions:
-                            guid_to_level[ext_guid] = ext_level
-
-                # Group scenarios by type
-                scenarios_by_type = defaultdict(list)
-                for scenario in uc_scenarios:
-                    scenarios_by_type[scenario.scenario_type].append(scenario)
-
-                # Display scenarios organized by type
-                for scenario_type in ['Basic Path', 'Alternate', 'Exception']:
-                    if scenario_type in scenarios_by_type:
-                        # Sort scenarios by their step level
-                        sorted_scenarios = sorted(
-                            scenarios_by_type[scenario_type],
-                            key=lambda s: guid_to_level.get(s.ea_guid, '0') if s.ea_guid else '0'
-                        )
-
-                        for scenario in sorted_scenarios:
-                            # For Alternate/Exception, prefix with step level if available
-                            if scenario.scenario_type in ['Alternate', 'Exception'] and scenario.ea_guid in guid_to_level:
-                                level_prefix = guid_to_level[scenario.ea_guid] + " "
-                            else:
-                                level_prefix = ""
-
-                            uc_content += f"## {level_prefix}{scenario.scenario_type}: {scenario.name}\n\n"
-
-                            if scenario.steps:
-                                uc_content += "**Steps:**\n\n"
-                                for idx, step in enumerate(scenario.steps, 1):
-                                    uc_content += f"{idx}. {step}\n"
-
-                                    # Check if this step has extensions (for Basic Path)
-                                    if scenario.scenario_type == 'Basic Path':
-                                        for ext_step_idx, ext_level, ext_guid in scenario.extensions:
-                                            if ext_step_idx == idx - 1:  # idx is 1-based, ext_step_idx is 0-based
-                                                # Find the scenario that this extension points to
-                                                if ext_guid in guid_to_scenario:
-                                                    ext_scenario = guid_to_scenario[ext_guid]
-                                                    flow_type = "Alternate flow" if ext_scenario.scenario_type == "Alternate" else "Exception flow"
-                                                    uc_content += f"   {ext_level}. {flow_type}: {ext_scenario.name}\n"
-
-                                uc_content += "\n"
-
-                            if scenario.notes:
-                                uc_content += f"**Notes:** {scenario.notes}\n\n"
-
-                # Display any other scenario types not in the standard list
-                for scenario_type, scenarios in scenarios_by_type.items():
-                    if scenario_type not in ['Basic Path', 'Alternate', 'Exception']:
-                        # Sort scenarios by their step level
-                        sorted_scenarios = sorted(
-                            scenarios,
-                            key=lambda s: guid_to_level.get(s.ea_guid, '0') if s.ea_guid else '0'
-                        )
-
-                        for scenario in sorted_scenarios:
-                            # Prefix with step level if available
-                            if scenario.ea_guid in guid_to_level:
-                                level_prefix = guid_to_level[scenario.ea_guid] + " "
-                            else:
-                                level_prefix = ""
-
-                            uc_content += f"## {level_prefix}{scenario.scenario_type}: {scenario.name}\n\n"
-
-                            if scenario.steps:
-                                uc_content += "**Steps:**\n\n"
-                                for idx, step in enumerate(scenario.steps, 1):
-                                    uc_content += f"{idx}. {step}\n"
-
-                                    # Check if this step has extensions
-                                    for ext_step_idx, ext_level, ext_guid in scenario.extensions:
-                                        if ext_step_idx == idx - 1:  # idx is 1-based, ext_step_idx is 0-based
-                                            # Find the scenario that this extension points to
-                                            if ext_guid in guid_to_scenario:
-                                                ext_scenario = guid_to_scenario[ext_guid]
-                                                flow_type = "Alternate flow" if ext_scenario.scenario_type == "Alternate" else "Exception flow"
-                                                uc_content += f"   {ext_level}. {flow_type}: {ext_scenario.name}\n"
-
-                                uc_content += "\n"
-
-                            if scenario.notes:
-                                uc_content += f"**Notes:** {scenario.notes}\n\n"
-
-            with open(uc_dir / uc_filename, 'w') as f:
-                f.write(uc_content)
-
-        # Write index
-        with open(uc_dir / 'index.md', 'w') as f:
-            f.write(uc_index_content)
-
-        logger.info(f"Generated documentation for {len(self.use_cases)} use cases")
-
-    def generate_state_machine_docs(self):
-        """Generate state machine documentation"""
-        logger.info("Generating state machine documentation...")
-
-        sm_dir = self.output_dir / 'state-machines'
-        sm_dir.mkdir(exist_ok=True)
-
-        sm_index_content = "# State Machines\n\n"
-        sm_index_content += "This document provides an overview of all state machines in the system.\n\n"
-
-        if not self.state_machines and not self.states:
-            sm_index_content += "*No state machines found in the model.*\n"
-            with open(sm_dir / 'index.md', 'w') as f:
-                f.write(sm_index_content)
-            return
-
-        sm_index_content += "## State Machine List\n\n"
-
-        # If we have state machine containers
-        for sm in self.state_machines:
-            sm_filename = f"sm-{sm.name.lower().replace(' ', '-')}.md"
-            sm_index_content += f"- [{sm.name}]({sm_filename})\n"
-
-            sm_content = f"# State Machine: {sm.name}\n\n"
-            sm_content += f"**Package:** {sm.package_name}\n\n"
-            sm_content += f"**Description:** {sm.clean_note() or 'No description available'}\n\n"
-
-            # Get states for this state machine
-            states = self.states.get(sm.object_id, [])
-
-            if states:
-                # TODO: Revisit state documentation formatting for better readability
-                # Consider alternative table formats or presentation styles
-                sm_content += "## States\n\n"
-
-                for state in states:
-                    sm_content += f"### {state.name}\n\n"
-
-                    # Get entry, do, exit operations for this state
-                    state_operations = self.operations.get(state.object_id, [])
-                    entry_ops = [op for op in state_operations if op.return_type == 'entry']
-                    do_ops = [op for op in state_operations if op.return_type == 'do']
-                    exit_ops = [op for op in state_operations if op.return_type == 'exit']
-
-                    # Format operations as bulleted lists
-                    entry_str = '<br>'.join([f'- {op.name}' for op in entry_ops]) if entry_ops else '-'
-                    do_str = '<br>'.join([f'- {op.name}' for op in do_ops]) if do_ops else '-'
-                    exit_str = '<br>'.join([f'- {op.name}' for op in exit_ops]) if exit_ops else '-'
-                    desc_str = state.clean_note() if state.clean_note() else '-'
-
-                    sm_content += "| Property | Value |\n"
-                    sm_content += "|----------|-------|\n"
-                    sm_content += f"| Type | {state.object_type} |\n"
-                    sm_content += f"| Entry | {entry_str} |\n"
-                    sm_content += f"| Do | {do_str} |\n"
-                    sm_content += f"| Exit | {exit_str} |\n"
-                    sm_content += f"| Description | {desc_str} |\n"
-                    sm_content += "\n"
-
-                # Get transitions (StateFlow connectors)
-                sm_content += "## Transitions\n\n"
-                transitions_found = False
-
-                for state in states:
-                    connectors = self.get_connectors_for_element(state.object_id, 'StateFlow')
-                    if connectors:
-                        transitions_found = True
-                        break
-
-                if transitions_found:
-                    sm_content += "| From | To | Trigger | Guard | Notes |\n"
-                    sm_content += "|------|----|---------|-------|-------|\n"
-
-                    for state in states:
-                        connectors = self.get_connectors_for_element(state.object_id, 'StateFlow')
-                        for conn in connectors:
-                            if conn.source_id == state.object_id:
-                                target = self.elements.get(conn.target_id)
-                                if target:
-                                    trigger = conn.trigger or '-'
-                                    guard = conn.guard or '-'
-                                    notes = conn.notes or '-'
-                                    sm_content += f"| {state.name} | {target.name} | {trigger} | {guard} | {notes} |\n"
-                    sm_content += "\n"
-                else:
-                    sm_content += "*No transitions defined.*\n\n"
-            else:
-                sm_content += "*No states defined for this state machine.*\n\n"
-
-            with open(sm_dir / sm_filename, 'w') as f:
-                f.write(sm_content)
-
-        # Also check for orphaned states (states without a parent state machine)
-        orphaned_states = self.states.get(0, []) + self.states.get(None, [])
-        if orphaned_states:
-            sm_index_content += "\n## Orphaned States\n\n"
-            sm_index_content += "The following states are not associated with a state machine:\n\n"
-            for state in orphaned_states:
-                sm_index_content += f"- {state.name} ({state.object_type})\n"
-
-        with open(sm_dir / 'index.md', 'w') as f:
-            f.write(sm_index_content)
-
-        logger.info(f"Generated documentation for {len(self.state_machines)} state machines")
-
-    def generate_component_docs(self):
-        """Generate component documentation"""
-        logger.info("Generating component documentation...")
-
-        comp_dir = self.output_dir / 'components'
-        comp_dir.mkdir(exist_ok=True)
-
-        comp_index_content = "# Components\n\n"
-        comp_index_content += "This document provides an overview of all components in the system.\n\n"
-        comp_index_content += "## Component List\n\n"
-
-        for comp in self.components:
-            comp_filename = f"comp-{comp.name.lower().replace(' ', '-')}.md"
-            comp_index_content += f"- [{comp.name}]({comp_filename})\n"
-
-            comp_content = f"# Component: {comp.name}\n\n"
-
-            if comp.stereotype:
-                comp_content += f"**Stereotype:** <<{comp.stereotype}>>\n\n"
-
-            comp_content += f"**Package:** {comp.package_name}\n\n"
-            comp_content += f"**Description:** {comp.clean_note() or 'No description available'}\n\n"
-
-            # Get interfaces and dependencies
-            connectors = self.get_connectors_for_element(comp.object_id)
-
-            provided_interfaces = []
-            required_interfaces = []
-            dependencies = []
-            used_by = []
-
-            for conn in connectors:
-                if conn.connector_type == 'Realisation' or conn.connector_type == 'Realization':
-                    if conn.source_id == comp.object_id:
-                        target = self.elements.get(conn.target_id)
-                        if target and target.object_type == 'Interface':
-                            provided_interfaces.append(target.name)
-                elif conn.connector_type == 'Dependency':
-                    if conn.source_id == comp.object_id:
-                        target = self.elements.get(conn.target_id)
-                        if target:
-                            if target.object_type == 'Interface':
-                                required_interfaces.append(target.name)
-                            else:
-                                dependencies.append(target.name)
-                    elif conn.target_id == comp.object_id:
-                        source = self.elements.get(conn.source_id)
-                        if source:
-                            used_by.append(source.name)
-
-            if provided_interfaces or required_interfaces:
-                comp_content += "## Interfaces\n\n"
-
-                if provided_interfaces:
-                    comp_content += "### Provided Interfaces\n\n"
-                    for iface in provided_interfaces:
-                        comp_content += f"- {iface}\n"
-                    comp_content += "\n"
-
-                if required_interfaces:
-                    comp_content += "### Required Interfaces\n\n"
-                    for iface in required_interfaces:
-                        comp_content += f"- {iface}\n"
-                    comp_content += "\n"
-
-            if dependencies or used_by:
-                comp_content += "## Dependencies\n\n"
-
-                if dependencies:
-                    comp_content += f"**Depends on:** {', '.join(dependencies)}\n\n"
-
-                if used_by:
-                    comp_content += f"**Used by:** {', '.join(used_by)}\n\n"
-
-            # Add attributes if any
-            if comp.object_id in self.attributes:
-                attrs = self.attributes[comp.object_id]
-                comp_content += "## Attributes\n\n"
-                comp_content += "| Name | Type | Visibility | Default | Static |\n"
-                comp_content += "|------|------|------------|---------|--------|\n"
-
-                for attr in attrs:
-                    static_flag = 'Yes' if attr.is_static else 'No'
-                    comp_content += f"| {attr.name} | {attr.attr_type} | {attr.scope} | {attr.default or '-'} | {static_flag} |\n"
-
-                comp_content += "\n"
-
-            # Add operations if any
-            if comp.object_id in self.operations:
-                ops = self.operations[comp.object_id]
-                comp_content += "## Operations\n\n"
-                comp_content += "| Name | Parameters | Return Type | Visibility |\n"
-                comp_content += "|------|------------|-------------|------------|\n"
-
-                for op in ops:
-                    params_str = ', '.join([f"{name}: {ptype}" for name, ptype in op.parameters]) or '-'
-                    comp_content += f"| {op.name} | {params_str} | {op.return_type} | {op.scope} |\n"
-
-                comp_content += "\n"
-
-            with open(comp_dir / comp_filename, 'w') as f:
-                f.write(comp_content)
-
-        # Generate interfaces catalog
-        if self.interfaces:
-            interfaces_content = "# Interfaces\n\n"
-            interfaces_content += "This document lists all interfaces in the system.\n\n"
-
-            for iface in self.interfaces:
-                interfaces_content += f"## {iface.name}\n\n"
-
-                if iface.stereotype:
-                    interfaces_content += f"**Stereotype:** <<{iface.stereotype}>>\n\n"
-
-                interfaces_content += f"**Package:** {iface.package_name}\n\n"
-                interfaces_content += f"**Description:** {iface.clean_note() or 'No description available'}\n\n"
-
-                # Add operations
-                if iface.object_id in self.operations:
-                    ops = self.operations[iface.object_id]
-                    interfaces_content += "### Methods\n\n"
-                    interfaces_content += "| Name | Parameters | Return Type |\n"
-                    interfaces_content += "|------|------------|-------------|\n"
-
-                    for op in ops:
-                        params_str = ', '.join([f"{name}: {ptype}" for name, ptype in op.parameters]) or '-'
-                        interfaces_content += f"| {op.name} | {params_str} | {op.return_type} |\n"
-
-                    interfaces_content += "\n"
-
-                interfaces_content += "---\n\n"
-
-            with open(comp_dir / 'interfaces.md', 'w') as f:
-                f.write(interfaces_content)
-
-        with open(comp_dir / 'index.md', 'w') as f:
-            f.write(comp_index_content)
-
-        logger.info(f"Generated documentation for {len(self.components)} components")
-
-    def generate_class_docs(self):
-        """Generate class and module documentation"""
-        logger.info("Generating class documentation...")
-
-        class_dir = self.output_dir / 'classes'
-        class_dir.mkdir(exist_ok=True)
-
-        # Group classes by package
-        classes_by_package = defaultdict(list)
-        for cls in self.classes:
-            classes_by_package[cls.package_name].append(cls)
-
-        class_index_content = "# Classes and Modules\n\n"
-        class_index_content += "This document provides an overview of all classes in the system.\n\n"
-        class_index_content += "## Packages\n\n"
-
-        for package_name, classes in sorted(classes_by_package.items()):
-            package_dir = class_dir / package_name.lower().replace(' ', '-')
-            package_dir.mkdir(exist_ok=True)
-
-            class_index_content += f"### {package_name}\n\n"
-
-            for cls in sorted(classes, key=lambda x: x.name):
-                class_filename = f"{cls.name.lower().replace(' ', '-')}.md"
-                class_index_content += f"- [{cls.name}]({package_name.lower().replace(' ', '-')}/{class_filename})\n"
-
-                class_content = f"# Class: {cls.name}\n\n"
-
-                if cls.stereotype:
-                    class_content += f"**Stereotype:** <<{cls.stereotype}>>\n\n"
-
-                class_content += f"**Package:** {cls.package_name}\n\n"
-                class_content += f"**Visibility:** {cls.visibility}\n\n"
-                class_content += f"**Description:** {cls.clean_note() or 'No description available'}\n\n"
-
-                # Get inheritance and relationships
-                connectors = self.get_connectors_for_element(cls.object_id)
-
-                inherits_from = []
-                implements = []
-                associations = []
-                dependencies = []
-
-                for conn in connectors:
-                    if conn.connector_type == 'Generalization':
-                        if conn.source_id == cls.object_id:
-                            target = self.elements.get(conn.target_id)
-                            if target:
-                                inherits_from.append(target.name)
-                    elif conn.connector_type == 'Realisation' or conn.connector_type == 'Realization':
-                        if conn.source_id == cls.object_id:
-                            target = self.elements.get(conn.target_id)
-                            if target and target.object_type == 'Interface':
-                                implements.append(target.name)
-                    elif conn.connector_type in ['Association', 'Aggregation', 'Composition']:
-                        if conn.source_id == cls.object_id:
-                            target = self.elements.get(conn.target_id)
-                            if target:
-                                card = f" ({conn.target_card})" if conn.target_card else ""
-                                role = f" - {conn.target_role}" if conn.target_role else ""
-                                associations.append(f"{target.name}{card}{role} [{conn.connector_type}]")
-                        elif conn.target_id == cls.object_id:
-                            source = self.elements.get(conn.source_id)
-                            if source:
-                                card = f" ({conn.source_card})" if conn.source_card else ""
-                                role = f" - {conn.source_role}" if conn.source_role else ""
-                                associations.append(f"{source.name}{card}{role} [{conn.connector_type}]")
-                    elif conn.connector_type == 'Dependency':
-                        if conn.source_id == cls.object_id:
-                            target = self.elements.get(conn.target_id)
-                            if target:
-                                dependencies.append(target.name)
-
-                # Attributes section
-                if cls.object_id in self.attributes:
-                    attrs = self.attributes[cls.object_id]
-                    class_content += "## Attributes\n\n"
-                    class_content += "| Name | Type | Visibility | Default | Static | Const | Description |\n"
-                    class_content += "|------|------|------------|---------|--------|-------|-------------|\n"
-
-                    for attr in attrs:
-                        static_flag = 'Yes' if attr.is_static else 'No'
-                        const_flag = 'Yes' if attr.is_const else 'No'
-                        desc = attr.notes or '-'
-                        class_content += f"| {attr.name} | {attr.attr_type} | {attr.scope} | {attr.default or '-'} | {static_flag} | {const_flag} | {desc} |\n"
-
-                    class_content += "\n"
-
-                # Operations section
-                if cls.object_id in self.operations:
-                    ops = self.operations[cls.object_id]
-                    class_content += "## Methods\n\n"
-                    class_content += "| Name | Parameters | Return Type | Visibility | Abstract | Static | Description |\n"
-                    class_content += "|------|------------|-------------|------------|----------|--------|-------------|\n"
-
-                    for op in ops:
-                        params_str = ', '.join([f"{name}: {ptype}" for name, ptype in op.parameters]) or '-'
-                        abstract_flag = 'Yes' if op.is_abstract else 'No'
-                        static_flag = 'Yes' if op.is_static else 'No'
-                        desc = op.notes or '-'
-                        class_content += f"| {op.name} | {params_str} | {op.return_type} | {op.scope} | {abstract_flag} | {static_flag} | {desc} |\n"
-
-                    class_content += "\n"
-
-                # Relationships section
-                if inherits_from or implements or associations or dependencies:
-                    class_content += "## Relationships\n\n"
-
-                    if inherits_from:
-                        class_content += f"**Inherits from:** {', '.join(inherits_from)}\n\n"
-
-                    if implements:
-                        class_content += f"**Implements:** {', '.join(implements)}\n\n"
-
-                    if associations:
-                        class_content += "**Associations:**\n\n"
-                        for assoc in associations:
-                            class_content += f"- {assoc}\n"
-                        class_content += "\n"
-
-                    if dependencies:
-                        class_content += f"**Dependencies:** {', '.join(dependencies)}\n\n"
-
-                with open(package_dir / class_filename, 'w') as f:
-                    f.write(class_content)
-
-            class_index_content += "\n"
-
-        # Generate enumerations documentation
-        if self.enumerations:
-            class_index_content += "## Enumerations\n\n"
-
-            for enum in self.enumerations:
-                enum_content = f"### {enum.name}\n\n"
-                enum_content += f"**Package:** {enum.package_name}\n\n"
-                enum_content += f"**Description:** {enum.clean_note() or 'No description available'}\n\n"
-
-                if enum.object_id in self.attributes:
-                    attrs = self.attributes[enum.object_id]
-                    enum_content += "**Values:**\n\n"
-                    for attr in attrs:
-                        default = f" = {attr.default}" if attr.default else ""
-                        enum_content += f"- {attr.name}{default}\n"
-                    enum_content += "\n"
-
-                class_index_content += enum_content
-
-        with open(class_dir / 'index.md', 'w') as f:
-            f.write(class_index_content)
-
-        logger.info(f"Generated documentation for {len(self.classes)} classes")
-
-    def perform_quality_checks(self):
-        """Perform quality checks on the model"""
-        logger.info("Performing quality checks...")
-
-        min_desc_length = self.config.get('quality_checks', {}).get('min_description_length', 20)
-
-        for element in self.elements.values():
-            # Check for undocumented elements
-            desc = element.clean_note()
-            if not desc or len(desc) < min_desc_length:
-                self.quality_metrics['undocumented'].append({
-                    'name': element.name,
-                    'type': element.object_type,
-                    'package': element.package_name
-                })
-
-        logger.info("Quality checks complete")
-
-    def generate_quality_report(self):
-        """Generate quality report"""
-        logger.info("Generating quality report...")
-
-        report_dir = self.output_dir / 'reports'
-        report_dir.mkdir(exist_ok=True)
-
-        report_content = "# Documentation Quality Report\n\n"
-        report_content += f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-        report_content += f"**Total Elements:** {self.quality_metrics['total_elements']}\n\n"
-
-        # Undocumented elements
-        undoc = self.quality_metrics['undocumented']
-        report_content += f"## Undocumented Elements ({len(undoc)})\n\n"
-
-        if undoc:
-            report_content += "The following elements have insufficient or missing documentation:\n\n"
-            report_content += "| Name | Type | Package |\n"
-            report_content += "|------|------|----------|\n"
-
-            for item in undoc:
-                report_content += f"| {item['name']} | {item['type']} | {item['package']} |\n"
-
-            report_content += "\n"
-        else:
-            report_content += "*All elements are properly documented.*\n\n"
-
-        # Summary statistics
-        report_content += "## Summary Statistics\n\n"
-        report_content += f"- Use Cases: {len(self.use_cases)}\n"
-        report_content += f"- Actors: {len(self.actors)}\n"
-        report_content += f"- State Machines: {len(self.state_machines)}\n"
-        report_content += f"- Components: {len(self.components)}\n"
-        report_content += f"- Classes: {len(self.classes)}\n"
-        report_content += f"- Interfaces: {len(self.interfaces)}\n"
-        report_content += f"- Enumerations: {len(self.enumerations)}\n"
-        report_content += f"- Total Relationships: {len(self.connectors)}\n"
-
-        documentation_rate = ((self.quality_metrics['total_elements'] - len(undoc)) /
-                             self.quality_metrics['total_elements'] * 100) if self.quality_metrics['total_elements'] > 0 else 0
-        report_content += f"\n**Documentation Rate:** {documentation_rate:.1f}%\n"
-
-        with open(report_dir / 'quality-report.md', 'w') as f:
-            f.write(report_content)
-
-        logger.info("Quality report generated")
-
-    def generate_dependencies_report(self):
-        """Generate dependencies analysis report"""
-        logger.info("Generating dependencies report...")
-
-        report_dir = self.output_dir / 'reports'
-        report_dir.mkdir(exist_ok=True)
-
-        report_content = "# Dependency Analysis\n\n"
-        report_content += f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-
-        # Analyze dependency connectors
-        dep_connectors = [c for c in self.connectors if c.connector_type == 'Dependency']
-
-        report_content += f"## Total Dependencies: {len(dep_connectors)}\n\n"
-
-        if dep_connectors:
-            report_content += "| Source | Target | Type |\n"
-            report_content += "|--------|--------|------|\n"
-
-            for conn in dep_connectors:
-                source = self.elements.get(conn.source_id)
-                target = self.elements.get(conn.target_id)
-                if source and target:
-                    report_content += f"| {conn.source_name} | {conn.target_name} | {source.object_type} → {target.object_type} |\n"
-
-            report_content += "\n"
-
-        # Mermaid diagram
-        if dep_connectors:
-            report_content += "## Dependency Graph\n\n"
-            report_content += "```mermaid\n"
-            report_content += "graph LR\n"
-
-            added_nodes = set()
-            for conn in dep_connectors:
-                source = self.elements.get(conn.source_id)
-                target = self.elements.get(conn.target_id)
-                if source and target:
-                    # Clean names for mermaid
-                    source_id = f"N{conn.source_id}"
-                    target_id = f"N{conn.target_id}"
-
-                    if source_id not in added_nodes:
-                        report_content += f"    {source_id}[\"{conn.source_name}\"]\n"
-                        added_nodes.add(source_id)
-
-                    if target_id not in added_nodes:
-                        report_content += f"    {target_id}[\"{conn.target_name}\"]\n"
-                        added_nodes.add(target_id)
-
-                    report_content += f"    {source_id} --> {target_id}\n"
-
-            report_content += "```\n\n"
-
-        with open(report_dir / 'dependencies.md', 'w') as f:
-            f.write(report_content)
-
-        logger.info("Dependencies report generated")
+        self.extractor.extract_all()
+
+    def generate_documentation(self):
+        """Generate all markdown documentation"""
+        logger.info("Starting documentation generation...")
+
+        # Initialize generators
+        uc_generator = UseCaseGenerator(self.extractor, self.output_dir)
+        sm_generator = StateMachineGenerator(self.extractor, self.output_dir)
+        comp_generator = ComponentGenerator(self.extractor, self.output_dir)
+        class_generator = ClassGenerator(self.extractor, self.output_dir)
+
+        # Generate all documentation
+        uc_generator.generate()
+        sm_generator.generate()
+        comp_generator.generate()
+        class_generator.generate()
+
+        # Generate quality reports
+        self.quality_reporter.perform_quality_checks()
+        self.quality_reporter.generate_quality_report()
+        self.quality_reporter.generate_dependencies_report()
+
+        # Generate main index
+        self.generate_index()
+
+        logger.info("Documentation generation complete!")
 
     def generate_index(self):
         """Generate main index/navigation document"""
@@ -1568,54 +159,39 @@ class SparxDocGenerator:
 
         index_content += "## Documentation Sections\n\n"
 
-        if self.use_cases:
+        if self.extractor.use_cases:
             index_content += f"### [Use Cases](use-cases/index.md)\n\n"
-            index_content += f"Contains {len(self.use_cases)} use cases and {len(self.actors)} actors describing "
+            index_content += f"Contains {len(self.extractor.use_cases)} use cases and {len(self.extractor.actors)} actors describing "
             index_content += "system functionality and user interactions.\n\n"
 
-        if self.state_machines:
+        if self.extractor.state_machines:
             index_content += f"### [State Machines](state-machines/index.md)\n\n"
-            index_content += f"Contains {len(self.state_machines)} state machines documenting system states "
+            index_content += f"Contains {len(self.extractor.state_machines)} state machines documenting system states "
             index_content += "and transitions.\n\n"
 
-        if self.components:
+        if self.extractor.components:
             index_content += f"### [Components](components/index.md)\n\n"
-            index_content += f"Contains {len(self.components)} components and their interfaces, "
+            index_content += f"Contains {len(self.extractor.components)} components and their interfaces, "
             index_content += "showing system architecture and component interactions.\n\n"
 
-        if self.classes:
+        if self.extractor.classes:
             index_content += f"### [Classes and Modules](classes/index.md)\n\n"
-            index_content += f"Contains {len(self.classes)} classes, {len(self.interfaces)} interfaces, "
-            index_content += f"and {len(self.enumerations)} enumerations documenting the domain model.\n\n"
+            index_content += f"Contains {len(self.extractor.classes)} classes, {len(self.extractor.interfaces)} interfaces, "
+            index_content += f"and {len(self.extractor.enumerations)} enumerations documenting the domain model.\n\n"
 
         index_content += "### Reports\n\n"
         index_content += "- [Quality Report](reports/quality-report.md) - Documentation quality metrics\n"
         index_content += "- [Dependency Analysis](reports/dependencies.md) - System dependencies and relationships\n\n"
 
         index_content += "## Model Statistics\n\n"
-        index_content += f"- **Total Elements:** {self.quality_metrics['total_elements']}\n"
-        index_content += f"- **Total Packages:** {len(self.packages)}\n"
-        index_content += f"- **Total Relationships:** {len(self.connectors)}\n"
+        index_content += f"- **Total Elements:** {self.quality_reporter.quality_metrics['total_elements']}\n"
+        index_content += f"- **Total Packages:** {len(self.extractor.packages)}\n"
+        index_content += f"- **Total Relationships:** {len(self.extractor.connectors)}\n"
 
         with open(self.output_dir / 'index.md', 'w') as f:
             f.write(index_content)
 
         logger.info("Main index generated")
-
-    def generate_documentation(self):
-        """Generate all markdown documentation"""
-        logger.info("Starting documentation generation...")
-
-        self.generate_use_case_docs()
-        self.generate_state_machine_docs()
-        self.generate_component_docs()
-        self.generate_class_docs()
-        self.perform_quality_checks()
-        self.generate_quality_report()
-        self.generate_dependencies_report()
-        self.generate_index()
-
-        logger.info("Documentation generation complete!")
 
     def run(self, analyze_schema_only: bool = False):
         """
@@ -1630,11 +206,7 @@ class SparxDocGenerator:
             logger.info("=" * 60)
 
             if analyze_schema_only:
-                self.connect_db()
-                try:
-                    self.analyze_schema()
-                finally:
-                    self.close_db()
+                self.analyze_schema()
                 logger.info("Schema analysis complete")
                 return
 
