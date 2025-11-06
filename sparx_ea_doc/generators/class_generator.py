@@ -127,22 +127,7 @@ class ClassGenerator:
                     if target:
                         dependencies.append(target.name)
 
-        # Attributes section (public only)
-        if cls.object_id in self.extractor.attributes:
-            attrs = [attr for attr in self.extractor.attributes[cls.object_id] if attr.scope.lower() == 'public']
-            if attrs:
-                class_content += "## Attributes\n\n"
-                class_content += "| Name | Type | Default | Const | Description |\n"
-                class_content += "|------|------|---------|-------|-------------|\n"
-
-                for attr in attrs:
-                    const_flag = 'Yes' if attr.is_const else 'No'
-                    desc = attr.notes or '-'
-                    class_content += f"| {attr.name} | {attr.attr_type} | {attr.default or '-'} | {const_flag} | {desc} |\n"
-
-                class_content += "\n"
-
-        # Operations section (public only)
+        # Operations section (public only) - show methods first
         if cls.object_id in self.extractor.operations:
             ops = [op for op in self.extractor.operations[cls.object_id] if op.scope.lower() == 'public']
             if ops:
@@ -154,6 +139,21 @@ class ClassGenerator:
                     params_str = ', '.join([f"{name}: {ptype}" for name, ptype in op.parameters]) or '-'
                     desc = op.notes or '-'
                     class_content += f"| {op.name} | {params_str} | {op.return_type} | {desc} |\n"
+
+                class_content += "\n"
+
+        # Attributes section (public only) - show attributes after methods
+        if cls.object_id in self.extractor.attributes:
+            attrs = [attr for attr in self.extractor.attributes[cls.object_id] if attr.scope.lower() == 'public']
+            if attrs:
+                class_content += "## Attributes\n\n"
+                class_content += "| Name | Type | Default | Const | Description |\n"
+                class_content += "|------|------|---------|-------|-------------|\n"
+
+                for attr in attrs:
+                    const_flag = 'Yes' if attr.is_const else 'No'
+                    desc = attr.notes or '-'
+                    class_content += f"| {attr.name} | {attr.attr_type} | {attr.default or '-'} | {const_flag} | {desc} |\n"
 
                 class_content += "\n"
 
