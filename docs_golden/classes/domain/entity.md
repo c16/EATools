@@ -1,5 +1,7 @@
 # Class: Entity
 
+[Home](../../index.md) > [Classes](../index.md) > [Domain](index.md) > Entity
+
 **Package:** Domain
 
 **Version: 1.0 | Modified: 2025-11-05 20:35:36 | GUID: {01C17CEB-8294-4387-BCFD-98E3A9CFB022}**

@@ -1,5 +1,7 @@
 # Dependency Analysis
 
+[Home](../index.md) > [Reports](index.md) > Dependencies
+
 ## Total Dependencies: 3
 
 | Source | Target | Type |

@@ -4,6 +4,7 @@ State machine documentation generator module.
 
 import logging
 from pathlib import Path
+from ..utils import generate_breadcrumbs
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +30,14 @@ class StateMachineGenerator:
         sm_dir = self.output_dir / 'state-machines'
         sm_dir.mkdir(exist_ok=True)
 
+        index_file = sm_dir / 'index.md'
         sm_index_content = "# State Machines\n\n"
+        sm_index_content += generate_breadcrumbs(index_file, self.output_dir, "State Machines")
         sm_index_content += "This document provides an overview of all state machines in the system.\n\n"
 
         if not self.extractor.state_machines and not self.extractor.states:
             sm_index_content += "*No state machines found in the model.*\n"
-            with open(sm_dir / 'index.md', 'w') as f:
+            with open(index_file, 'w') as f:
                 f.write(sm_index_content)
             return
 
@@ -43,11 +46,12 @@ class StateMachineGenerator:
         # Generate documentation for each state machine
         for sm in self.extractor.state_machines:
             sm_filename = f"sm-{sm.name.lower().replace(' ', '-')}.md"
+            sm_file = sm_dir / sm_filename
             sm_index_content += f"- [{sm.name}]({sm_filename})\n"
 
-            sm_content = self._generate_single_state_machine(sm)
+            sm_content = self._generate_single_state_machine(sm, sm_file)
 
-            with open(sm_dir / sm_filename, 'w') as f:
+            with open(sm_file, 'w') as f:
                 f.write(sm_content)
 
         # Check for orphaned states (states without a parent state machine)
@@ -58,14 +62,15 @@ class StateMachineGenerator:
             for state in orphaned_states:
                 sm_index_content += f"- {state.name} ({state.object_type})\n"
 
-        with open(sm_dir / 'index.md', 'w') as f:
+        with open(index_file, 'w') as f:
             f.write(sm_index_content)
 
         logger.info(f"Generated documentation for {len(self.extractor.state_machines)} state machines")
 
-    def _generate_single_state_machine(self, sm) -> str:
+    def _generate_single_state_machine(self, sm, sm_file: Path) -> str:
         """Generate documentation for a single state machine"""
         sm_content = f"# State Machine: {sm.name}\n\n"
+        sm_content += generate_breadcrumbs(sm_file, self.output_dir, sm.name)
         sm_content += f"**Package:** {sm.package_name}\n\n"
         sm_content += f"**Description:** {sm.clean_note() or 'No description available'}\n\n"
 

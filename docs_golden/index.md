@@ -24,10 +24,9 @@ Contains 3 components and their interfaces, showing system architecture and comp
 
 Contains 7 classes, 1 interfaces, and 1 enumerations documenting the domain model.
 
-### Reports
+### [Reports](reports/index.md)
 
-- [Quality Report](reports/quality-report.md) - Documentation quality metrics
-- [Dependency Analysis](reports/dependencies.md) - System dependencies and relationships
+Quality reports and analysis of the model documentation and structure.
 
 ## Model Statistics
 

@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
+from .utils import generate_breadcrumbs
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,9 @@ class QualityReporter:
         report_dir = self.output_dir / 'reports'
         report_dir.mkdir(exist_ok=True)
 
+        report_file = report_dir / 'quality-report.md'
         report_content = "# Documentation Quality Report\n\n"
+        report_content += generate_breadcrumbs(report_file, self.output_dir, "Quality Report")
         report_content += f"**Total Elements:** {self.quality_metrics['total_elements']}\n\n"
 
         # Undocumented elements
@@ -94,8 +97,11 @@ class QualityReporter:
                              self.quality_metrics['total_elements'] * 100) if self.quality_metrics['total_elements'] > 0 else 0
         report_content += f"\n**Documentation Rate:** {documentation_rate:.1f}%\n"
 
-        with open(report_dir / 'quality-report.md', 'w') as f:
+        with open(report_file, 'w') as f:
             f.write(report_content)
+
+        # Generate/update reports index
+        self._generate_reports_index()
 
         logger.info("Quality report generated")
 
@@ -106,7 +112,9 @@ class QualityReporter:
         report_dir = self.output_dir / 'reports'
         report_dir.mkdir(exist_ok=True)
 
+        report_file = report_dir / 'dependencies.md'
         report_content = "# Dependency Analysis\n\n"
+        report_content += generate_breadcrumbs(report_file, self.output_dir, "Dependencies")
         # Analyze dependency connectors
         dep_connectors = [c for c in self.extractor.connectors if c.connector_type == 'Dependency']
 
@@ -151,7 +159,33 @@ class QualityReporter:
 
             report_content += "```\n\n"
 
-        with open(report_dir / 'dependencies.md', 'w') as f:
+        with open(report_file, 'w') as f:
             f.write(report_content)
 
+        # Generate/update reports index
+        self._generate_reports_index()
+
         logger.info("Dependencies report generated")
+
+    def _generate_reports_index(self):
+        """Generate or update the reports index page"""
+        report_dir = self.output_dir / 'reports'
+        index_file = report_dir / 'index.md'
+
+        index_content = "# Reports\n\n"
+        index_content += generate_breadcrumbs(index_file, self.output_dir, "Reports")
+        index_content += "This section contains various reports and analyses of the model.\n\n"
+        index_content += "## Available Reports\n\n"
+
+        # List report files
+        reports = [
+            ("Quality Report", "quality-report.md", "Documentation quality metrics and coverage"),
+            ("Dependency Analysis", "dependencies.md", "System dependencies and relationships")
+        ]
+
+        for title, filename, description in reports:
+            index_content += f"### [{title}]({filename})\n\n"
+            index_content += f"{description}\n\n"
+
+        with open(index_file, 'w') as f:
+            f.write(index_content)

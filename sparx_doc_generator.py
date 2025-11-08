@@ -178,9 +178,8 @@ class SparxDocGenerator:
             index_content += f"Contains {len(self.extractor.classes)} classes, {len(self.extractor.interfaces)} interfaces, "
             index_content += f"and {len(self.extractor.enumerations)} enumerations documenting the domain model.\n\n"
 
-        index_content += "### Reports\n\n"
-        index_content += "- [Quality Report](reports/quality-report.md) - Documentation quality metrics\n"
-        index_content += "- [Dependency Analysis](reports/dependencies.md) - System dependencies and relationships\n\n"
+        index_content += "### [Reports](reports/index.md)\n\n"
+        index_content += "Quality reports and analysis of the model documentation and structure.\n\n"
 
         index_content += "## Model Statistics\n\n"
         index_content += f"- **Total Elements:** {self.quality_reporter.quality_metrics['total_elements']}\n"

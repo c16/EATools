@@ -1,5 +1,7 @@
 # Documentation Quality Report
 
+[Home](../index.md) > [Reports](index.md) > Quality Report
+
 **Total Elements:** 30
 
 ## Undocumented Elements (22)
