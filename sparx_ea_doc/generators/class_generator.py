@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 from collections import defaultdict
 from ..utils import generate_breadcrumbs
+from ..template_renderer import TemplateRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -13,16 +14,24 @@ logger = logging.getLogger(__name__)
 class ClassGenerator:
     """Generates class and module documentation"""
 
-    def __init__(self, extractor, output_dir: Path):
+    def __init__(self, extractor, output_dir: Path, template_dir: Path = None):
         """
         Initialize the class generator
 
         Args:
             extractor: SparxExtractor instance with extracted data
             output_dir: Output directory for documentation
+            template_dir: Directory containing templates (optional)
         """
         self.extractor = extractor
         self.output_dir = output_dir
+
+        # Set up template renderer
+        if template_dir is None:
+            template_dir = Path(__file__).parent.parent.parent / 'templates'
+
+        self.template_renderer = TemplateRenderer(template_dir)
+        self.use_template = (template_dir / 'class_template.md').exists()
 
     def generate(self):
         """Generate class and module documentation"""
@@ -84,8 +93,20 @@ class ClassGenerator:
 
     def _generate_single_class(self, cls, class_file: Path) -> str:
         """Generate documentation for a single class"""
+        breadcrumbs = generate_breadcrumbs(class_file, self.output_dir, cls.name)
+
+        # Try to use template if available
+        if self.use_template:
+            try:
+                # TODO: Implement full template rendering for classes
+                # For now, falls through to hard-coded generation
+                pass
+            except Exception as e:
+                logger.warning(f"Template rendering failed for {cls.name}: {e}, using fallback")
+
+        # Fallback to original hard-coded generation
         class_content = f"# Class: {cls.name}\n\n"
-        class_content += generate_breadcrumbs(class_file, self.output_dir, cls.name)
+        class_content += breadcrumbs
 
         if cls.stereotype:
             class_content += f"**Stereotype:** <<{cls.stereotype}>>\n\n"

@@ -7,18 +7,12 @@
 
 **Description:** No description available
 
-
 ## States
 
-### Shipped
 
-| Property | Value |
-|----------|-------|
-| Type | StateMachine |
-| Entry | - |
-| Do | - |
-| Exit | - |
-| Description | - |
+
+
+
 
 
 

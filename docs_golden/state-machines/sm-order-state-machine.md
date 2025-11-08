@@ -2,9 +2,11 @@
 
 [Home](../index.md) > [State Machines](index.md) > Order State Machine
 
+
 **Package:** StateMachines
 
 **Description:** No description available
+
 
 ## States
 
@@ -77,6 +79,8 @@
 | Do | - |
 | Exit | - |
 | Description | - |
+
+
 
 ## Transitions
 

@@ -13,9 +13,11 @@ This documentation was automatically generated from the Sparx Enterprise Archite
 Contains 6 use cases and 5 actors describing system functionality and user interactions.
 
 
+
 ### [State Machines](state-machines/index.md)
 
 Contains 2 state machines documenting system states and transitions.
+
 
 
 ### [Components](components/index.md)
@@ -23,9 +25,11 @@ Contains 2 state machines documenting system states and transitions.
 Contains 3 components and their interfaces, showing system architecture and component interactions.
 
 
+
 ### [Classes and Modules](classes/index.md)
 
 Contains 7 classes, 1 interfaces, and 1 enumerations documenting the domain model.
+
 
 
 ### [Reports](reports/index.md)
@@ -33,9 +37,11 @@ Contains 7 classes, 1 interfaces, and 1 enumerations documenting the domain mode
 Quality reports and analysis of the model documentation and structure.
 
 
+
 ## Model Statistics
 
 - **Total Elements:** 30
 - **Total Packages:** 7
 - **Total Relationships:** 24
+
 

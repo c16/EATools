@@ -5,6 +5,7 @@ Component documentation generator module.
 import logging
 from pathlib import Path
 from ..utils import generate_breadcrumbs
+from ..template_renderer import TemplateRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -12,16 +13,24 @@ logger = logging.getLogger(__name__)
 class ComponentGenerator:
     """Generates component documentation"""
 
-    def __init__(self, extractor, output_dir: Path):
+    def __init__(self, extractor, output_dir: Path, template_dir: Path = None):
         """
         Initialize the component generator
 
         Args:
             extractor: SparxExtractor instance with extracted data
             output_dir: Output directory for documentation
+            template_dir: Directory containing templates (optional)
         """
         self.extractor = extractor
         self.output_dir = output_dir
+
+        # Set up template renderer
+        if template_dir is None:
+            template_dir = Path(__file__).parent.parent.parent / 'templates'
+
+        self.template_renderer = TemplateRenderer(template_dir)
+        self.use_template = (template_dir / 'component_template.md').exists()
 
     def generate(self):
         """Generate component documentation"""
@@ -58,8 +67,20 @@ class ComponentGenerator:
 
     def _generate_single_component(self, comp, comp_file: Path) -> str:
         """Generate documentation for a single component"""
+        breadcrumbs = generate_breadcrumbs(comp_file, self.output_dir, comp.name)
+
+        # Try to use template if available
+        if self.use_template:
+            try:
+                # TODO: Implement full template rendering for components
+                # For now, falls through to hard-coded generation
+                pass
+            except Exception as e:
+                logger.warning(f"Template rendering failed for {comp.name}: {e}, using fallback")
+
+        # Fallback to original hard-coded generation
         comp_content = f"# Component: {comp.name}\n\n"
-        comp_content += generate_breadcrumbs(comp_file, self.output_dir, comp.name)
+        comp_content += breadcrumbs
 
         if comp.stereotype:
             comp_content += f"**Stereotype:** <<{comp.stereotype}>>\n\n"

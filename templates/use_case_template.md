@@ -1,72 +1,48 @@
 # <use_case_name>
+<if_stereotype>
 
-<if_stereotype>**Stereotype:** <<stereotype>></if_stereotype>
+**Stereotype:** <<stereotype>></if_stereotype>
 
 **Package:** <package_name>
 
 **<metadata_parts>**
 
 **Description:** <description>
+<if_actors>
 
-<if_actors>**Actors:** <actors_list></if_actors>
+**Actors:** <actors_list></if_actors><if_includes>
 
-<if_includes>**Includes:**
-- <<include>> <included_use_case>
-</if_includes>
+**Includes:**
+<included_use_case></if_includes><if_extends>
 
-<if_extends>**Extended by:**
-- <<extend>> <extending_use_case>
-</if_extends>
+**Extended by:**
+<extending_use_case></if_extends><if_related>
 
-<if_related>**Related Use Cases:**
-- <related_use_case>
-</if_related>
+**Related Use Cases:**
+<related_use_case></if_related><if_preconditions>
 
-<if_preconditions>## Preconditions
+## Preconditions
 
-**<precondition_name>**
+<precondition_description></if_preconditions><if_postconditions>
 
-<precondition_description>
-</if_preconditions>
+## Postconditions
 
-<if_postconditions>## Postconditions
+<postcondition_description></if_postconditions><if_main_flow>
 
-**<postcondition_name>**
+## Main Flow
 
-<postcondition_description>
-</if_postconditions>
+<main_flow_content></if_main_flow><if_alternative_flows>
 
-<if_main_flow>## Main Flow
+## Alternative Flows
 
-<main_flow_content>
-</if_main_flow>
+<alternative_flows_content></if_alternative_flows><if_business_rules>
 
-<if_scenarios>## Scenarios
+## Business Rules
 
-<scenario_content>
-</if_scenarios>
+<business_rules_content></if_business_rules><if_exceptions>
 
-<if_alternative_flows>## Alternative Flows
+## Exceptions
 
-<alternative_flows_content>
-</if_alternative_flows>
+<exceptions_content></if_exceptions><if_scenarios>
 
-<if_business_rules>## Business Rules
-
-- <business_rule>
-</if_business_rules>
-
-<if_exceptions>## Exceptions
-
-<exceptions_content>
-</if_exceptions>
-
-<if_scenario_details>### <scenario_level><scenario_type>: <scenario_name>
-
-**Steps:**
-
-<step_number>. <step_description>
-   <extension_level>. <flow_type>: <extension_name>
-
-<if_scenario_notes>**Notes:** <scenario_notes></if_scenario_notes>
-</if_scenario_details>
+<scenario_content></if_scenarios>
