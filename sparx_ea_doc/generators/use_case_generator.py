@@ -7,6 +7,7 @@ from pathlib import Path
 from collections import defaultdict
 from typing import Dict, List
 from ..utils import generate_breadcrumbs
+from ..template_renderer import TemplateRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -14,16 +15,25 @@ logger = logging.getLogger(__name__)
 class UseCaseGenerator:
     """Generates use case documentation"""
 
-    def __init__(self, extractor, output_dir: Path):
+    def __init__(self, extractor, output_dir: Path, template_dir: Path = None):
         """
         Initialize the use case generator
 
         Args:
             extractor: SparxExtractor instance with extracted data
             output_dir: Output directory for documentation
+            template_dir: Directory containing templates (optional)
         """
         self.extractor = extractor
         self.output_dir = output_dir
+
+        # Set up template renderer
+        if template_dir is None:
+            # Default to templates/ directory in project root
+            template_dir = Path(__file__).parent.parent.parent / 'templates'
+
+        self.template_renderer = TemplateRenderer(template_dir)
+        self.use_template = (template_dir / 'use_case_template.md').exists()
 
     def generate(self):
         """Generate use case documentation"""
@@ -84,10 +94,210 @@ class UseCaseGenerator:
         with open(index_file, 'w') as f:
             f.write(uc_index_content)
 
+    def _generate_with_template(self, uc, breadcrumbs: str) -> str:
+        """
+        Generate use case documentation using template
+
+        Args:
+            uc: UseCase object
+            breadcrumbs: Pre-generated breadcrumb navigation
+
+        Returns:
+            Rendered documentation
+        """
+        # Load template
+        template = self.template_renderer.load_template('use_case_template.md')
+
+        # Build data dictionary
+        data = {
+            'use_case_name': uc.name,
+            'package_name': uc.package_name,
+            'description': uc.clean_note() or 'No description available',
+        }
+
+        # Add stereotype if exists
+        if uc.stereotype:
+            data['if_stereotype'] = True
+            data['stereotype'] = uc.stereotype
+        else:
+            data['if_stereotype'] = False
+
+        # Add metadata
+        metadata_parts = []
+        if uc.version:
+            metadata_parts.append(f"Version: {uc.version}")
+        if uc.modified_date:
+            metadata_parts.append(f"Modified: {uc.modified_date}")
+        if uc.guid:
+            metadata_parts.append(f"GUID: {uc.guid}")
+
+        if metadata_parts:
+            data['metadata_parts'] = ' | '.join(metadata_parts)
+        else:
+            data['metadata_parts'] = ''
+
+        # Get related actors and use cases
+        connectors = self.extractor.get_connectors_for_element(uc.object_id)
+
+        actors_set = set()
+        includes_set = set()
+        extends_set = set()
+        associations_set = set()
+
+        for conn in connectors:
+            if conn.source_id == uc.object_id:
+                target = self.extractor.elements.get(conn.target_id)
+                if target:
+                    if target.object_type == 'Actor':
+                        actors_set.add(target.name)
+                    elif target.object_type == 'UseCase':
+                        if 'include' in conn.connector_type.lower():
+                            includes_set.add(target.name)
+                        elif 'extend' in conn.connector_type.lower():
+                            extends_set.add(target.name)
+                        else:
+                            associations_set.add(target.name)
+            elif conn.target_id == uc.object_id:
+                source = self.extractor.elements.get(conn.source_id)
+                if source:
+                    if source.object_type == 'Actor':
+                        actors_set.add(source.name)
+                    elif source.object_type == 'UseCase':
+                        if 'extend' in conn.connector_type.lower():
+                            extends_set.add(source.name)
+
+        # Add actors
+        if actors_set:
+            data['if_actors'] = True
+            data['actors_list'] = ', '.join(sorted(actors_set))
+        else:
+            data['if_actors'] = False
+
+        # Add includes
+        if includes_set:
+            data['if_includes'] = True
+            includes_content = ""
+            for inc in sorted(includes_set):
+                includes_content += f"- <<include>> {inc}\n"
+            data['included_use_case'] = includes_content
+        else:
+            data['if_includes'] = False
+
+        # Add extends
+        if extends_set:
+            data['if_extends'] = True
+            extends_content = ""
+            for ext in sorted(extends_set):
+                extends_content += f"- <<extend>> {ext}\n"
+            data['extending_use_case'] = extends_content
+        else:
+            data['if_extends'] = False
+
+        # Add related
+        if associations_set:
+            data['if_related'] = True
+            related_content = ""
+            for assoc in sorted(associations_set):
+                related_content += f"- {assoc}\n"
+            data['related_use_case'] = related_content
+        else:
+            data['if_related'] = False
+
+        # Add preconditions and postconditions from constraints
+        if uc.object_id in self.extractor.constraints:
+            preconditions = [c for c in self.extractor.constraints[uc.object_id] if c.constraint_type == 'Pre-condition']
+            postconditions = [c for c in self.extractor.constraints[uc.object_id] if c.constraint_type == 'Post-condition']
+
+            if preconditions:
+                data['if_preconditions'] = True
+                precond_content = ""
+                for pc in preconditions:
+                    precond_content += f"**{pc.name}**\n\n"
+                    if pc.notes:
+                        precond_content += f"{pc.notes}\n\n"
+                data['precondition_name'] = preconditions[0].name if preconditions else ""
+                data['precondition_description'] = precond_content
+            else:
+                data['if_preconditions'] = False
+
+            if postconditions:
+                data['if_postconditions'] = True
+                postcond_content = ""
+                for pc in postconditions:
+                    postcond_content += f"**{pc.name}**\n\n"
+                    if pc.notes:
+                        postcond_content += f"{pc.notes}\n\n"
+                data['postcondition_name'] = postconditions[0].name if postconditions else ""
+                data['postcondition_description'] = postcond_content
+            else:
+                data['if_postconditions'] = False
+        else:
+            data['if_preconditions'] = False
+            data['if_postconditions'] = False
+
+        # Parse structured notes
+        sections = uc.parse_structured_note()
+
+        # Add structured sections
+        section_names = ['Main Flow', 'Alternative Flows', 'Business Rules', 'Exceptions']
+        for section_name in section_names:
+            key = section_name.lower().replace(' ', '_')
+            if_key = f"if_{key}"
+
+            if section_name in sections:
+                data[if_key] = True
+                if section_name == 'Business Rules':
+                    # Format as bulleted list
+                    rules = [line.strip() for line in sections[section_name].split('\n') if line.strip()]
+                    if len(rules) > 1:
+                        data[f"{key}_content"] = '\n'.join(f"- {rule}" for rule in rules)
+                    else:
+                        data[f"{key}_content"] = sections[section_name]
+                else:
+                    data[f"{key}_content"] = sections[section_name]
+            else:
+                data[if_key] = False
+
+        # Add scenarios (pre-rendered)
+        if uc.object_id in self.extractor.scenarios:
+            data['if_scenarios'] = True
+            data['scenario_content'] = self._generate_scenarios_section(uc.object_id)
+        else:
+            data['if_scenarios'] = False
+
+        # Debug: log data keys
+        logger.debug(f"Data keys for {uc.name}: {list(data.keys())}")
+        logger.debug(f"if_actors: {data.get('if_actors')}, if_preconditions: {data.get('if_preconditions')}, if_scenarios: {data.get('if_scenarios')}")
+
+        # Render template
+        rendered = self.template_renderer.render(template, data)
+
+        # Prepend breadcrumbs (title is in template)
+        # Remove title from template output if it exists
+        if rendered.startswith(f"# {uc.name}"):
+            # Template includes title, insert breadcrumbs after it
+            lines = rendered.split('\n', 2)
+            if len(lines) >= 2:
+                return f"{lines[0]}\n\n{breadcrumbs}{lines[1]}\n" + (lines[2] if len(lines) > 2 else "")
+
+        # Template doesn't include title, add it
+        return f"# {uc.name}\n\n{breadcrumbs}{rendered}"
+
     def _generate_single_use_case(self, uc, uc_file: Path) -> str:
         """Generate documentation for a single use case"""
+        # Generate breadcrumbs first (always added regardless of template use)
+        breadcrumbs = generate_breadcrumbs(uc_file, self.output_dir, uc.name)
+
+        # Try to use template if available
+        if self.use_template:
+            try:
+                return self._generate_with_template(uc, breadcrumbs)
+            except Exception as e:
+                logger.warning(f"Template rendering failed for {uc.name}: {e}, using fallback")
+
+        # Fallback to original hard-coded generation
         uc_content = f"# {uc.name}\n\n"
-        uc_content += generate_breadcrumbs(uc_file, self.output_dir, uc.name)
+        uc_content += breadcrumbs
 
         if uc.stereotype:
             uc_content += f"**Stereotype:** <<{uc.stereotype}>>\n\n"

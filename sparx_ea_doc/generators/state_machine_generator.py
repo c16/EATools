@@ -5,6 +5,7 @@ State machine documentation generator module.
 import logging
 from pathlib import Path
 from ..utils import generate_breadcrumbs
+from ..template_renderer import TemplateRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -12,16 +13,24 @@ logger = logging.getLogger(__name__)
 class StateMachineGenerator:
     """Generates state machine documentation"""
 
-    def __init__(self, extractor, output_dir: Path):
+    def __init__(self, extractor, output_dir: Path, template_dir: Path = None):
         """
         Initialize the state machine generator
 
         Args:
             extractor: SparxExtractor instance with extracted data
             output_dir: Output directory for documentation
+            template_dir: Directory containing templates (optional)
         """
         self.extractor = extractor
         self.output_dir = output_dir
+
+        # Set up template renderer
+        if template_dir is None:
+            template_dir = Path(__file__).parent.parent.parent / 'templates'
+
+        self.template_renderer = TemplateRenderer(template_dir)
+        self.use_template = (template_dir / 'state_machine_template.md').exists()
 
     def generate(self):
         """Generate state machine documentation"""
