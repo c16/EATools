@@ -43,6 +43,7 @@ docs/
 output/
 docs_latest/
 test_output/
+docs_html/
 
 # Test files
 *.qea
