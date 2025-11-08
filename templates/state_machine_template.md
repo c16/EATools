@@ -3,32 +3,20 @@
 **Package:** <package_name>
 
 **Description:** <description>
+<if_states>
 
-<if_states>## States
+## States
 
-<for_each_state>### <state_name>
+<states_content></if_states><if_no_states>
 
-| Property | Value |
-|----------|-------|
-| Type | <state_type> |
-| Entry | <entry_operations> |
-| Do | <do_operations> |
-| Exit | <exit_operations> |
-| Description | <state_description> |
+*No states defined for this state machine.*
+</if_no_states><if_transitions>
 
-</for_each_state>
-</if_states>
-
-<if_no_states>*No states defined for this state machine.*
-</if_no_states>
-
-<if_transitions>## Transitions
+## Transitions
 
 | From | To | Trigger | Guard | Notes |
 |------|----|---------|-------|-------|
-<for_each_transition>| <from_state> | <to_state> | <trigger> | <guard> | <notes> |
-</for_each_transition>
-</if_transitions>
+<transitions_content></if_transitions><if_no_transitions>
 
-<if_no_transitions>*No transitions defined.*
+*No transitions defined.*
 </if_no_transitions>

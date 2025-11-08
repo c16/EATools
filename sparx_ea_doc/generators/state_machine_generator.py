@@ -118,7 +118,7 @@ class StateMachineGenerator:
                 states_content += f"| Exit | {exit_str} |\n"
                 states_content += f"| Description | {desc_str} |\n\n"
 
-            data['for_each_state'] = states_content
+            data['states_content'] = states_content
 
             # Check for transitions
             transitions_found = any(
@@ -143,7 +143,7 @@ class StateMachineGenerator:
                                 notes = conn.notes or '-'
                                 trans_content += f"| {state.name} | {target.name} | {trigger} | {guard} | {notes} |\n"
 
-                data['for_each_transition'] = trans_content
+                data['transitions_content'] = trans_content
             else:
                 data['if_transitions'] = False
                 data['if_no_transitions'] = True

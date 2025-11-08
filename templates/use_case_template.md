@@ -1,56 +1,48 @@
 # <use_case_name>
+<if_stereotype>
 
-<if_stereotype>**Stereotype:** <<stereotype>></if_stereotype>
+**Stereotype:** <<stereotype>></if_stereotype>
 
 **Package:** <package_name>
 
 **<metadata_parts>**
 
 **Description:** <description>
+<if_actors>
 
-<if_actors>**Actors:** <actors_list></if_actors>
+**Actors:** <actors_list></if_actors><if_includes>
 
-<if_includes>**Includes:**
-<included_use_case>
-</if_includes>
+**Includes:**
+<included_use_case></if_includes><if_extends>
 
-<if_extends>**Extended by:**
-<extending_use_case>
-</if_extends>
+**Extended by:**
+<extending_use_case></if_extends><if_related>
 
-<if_related>**Related Use Cases:**
-<related_use_case>
-</if_related>
+**Related Use Cases:**
+<related_use_case></if_related><if_preconditions>
 
-<if_preconditions>## Preconditions
+## Preconditions
 
-<precondition_description>
-</if_preconditions>
+<precondition_description></if_preconditions><if_postconditions>
 
-<if_postconditions>## Postconditions
+## Postconditions
 
-<postcondition_description>
-</if_postconditions>
+<postcondition_description></if_postconditions><if_main_flow>
 
-<if_main_flow>## Main Flow
+## Main Flow
 
-<main_flow_content>
-</if_main_flow>
+<main_flow_content></if_main_flow><if_alternative_flows>
 
-<if_alternative_flows>## Alternative Flows
+## Alternative Flows
 
-<alternative_flows_content>
-</if_alternative_flows>
+<alternative_flows_content></if_alternative_flows><if_business_rules>
 
-<if_business_rules>## Business Rules
+## Business Rules
 
-<business_rules_content>
-</if_business_rules>
+<business_rules_content></if_business_rules><if_exceptions>
 
-<if_exceptions>## Exceptions
+## Exceptions
 
-<exceptions_content>
-</if_exceptions>
+<exceptions_content></if_exceptions><if_scenarios>
 
-<if_scenarios><scenario_content>
-</if_scenarios>
+<scenario_content></if_scenarios>
