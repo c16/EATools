@@ -4,11 +4,104 @@ This document describes all available attributes (placeholders) for each documen
 
 ## Table of Contents
 
-1. [Use Case Template](#use-case-template)
-2. [State Machine Template](#state-machine-template)
-3. [Component Template](#component-template)
-4. [Class Template](#class-template)
-5. [Common Conventions](#common-conventions)
+1. [Index Template (Master Document)](#index-template-master-document)
+2. [Use Case Template](#use-case-template)
+3. [State Machine Template](#state-machine-template)
+4. [Component Template](#component-template)
+5. [Class Template](#class-template)
+6. [Common Conventions](#common-conventions)
+
+---
+
+## Index Template (Master Document)
+
+**Template file:** `index_template.md`
+
+This template controls the main documentation index page - the cover page that determines which sections are included and in what order.
+
+### Basic Attributes
+
+| Attribute | Description | Example |
+|-----------|-------------|---------|
+| `<project_title>` | Title of the documentation | `Sparx Enterprise Architect Model Documentation` |
+| `<source_file>` | Name of the source .qea file | `test_model.qea` |
+| `<overview_text>` | Overview description text | `This documentation was automatically generated...` |
+
+### Statistics Attributes
+
+| Attribute | Description | Example |
+|-----------|-------------|---------|
+| `<total_elements>` | Total number of elements in model | `30` |
+| `<total_packages>` | Total number of packages | `7` |
+| `<total_relationships>` | Total number of connectors/relationships | `24` |
+
+### Section Counts
+
+| Attribute | Description | Example |
+|-----------|-------------|---------|
+| `<use_case_count>` | Number of use cases | `6` |
+| `<actor_count>` | Number of actors | `5` |
+| `<state_machine_count>` | Number of state machines | `2` |
+| `<component_count>` | Number of components | `3` |
+| `<class_count>` | Number of classes | `7` |
+| `<interface_count>` | Number of interfaces | `1` |
+| `<enumeration_count>` | Number of enumerations | `1` |
+
+### Conditional Sections
+
+Use these to control which documentation sections appear:
+
+- `<if_use_cases>` - Show if use cases exist
+- `<if_state_machines>` - Show if state machines exist
+- `<if_components>` - Show if components exist
+- `<if_classes>` - Show if classes exist
+- `<if_reports>` - Show reports section (always true)
+- `<if_additional_stats>` - Show additional statistics section
+
+### Customization Examples
+
+**Example: Change section order (put Classes first):**
+```markdown
+## Documentation Sections
+
+<if_classes>### [Classes and Modules](classes/index.md)
+
+Contains <class_count> classes, <interface_count> interfaces, and <enumeration_count> enumerations.
+
+</if_classes>
+
+<if_use_cases>### [Use Cases](use-cases/index.md)
+
+Contains <use_case_count> use cases and <actor_count> actors.
+
+</if_use_cases>
+```
+
+**Example: Hide sections you don't want:**
+```markdown
+<!-- Remove state machines section entirely -->
+<!-- <if_state_machines>...</if_state_machines> -->
+```
+
+**Example: Custom project title:**
+```markdown
+# <project_title> - Technical Documentation
+
+**Project:** MyProject
+**Source:** <source_file>
+**Generated:** 2025-11-08
+```
+
+**Example: Add custom statistics:**
+```markdown
+## Model Statistics
+
+- **Total Elements:** <total_elements>
+- **Total Packages:** <total_packages>
+- **Total Relationships:** <total_relationships>
+- **Documentation Coverage:** 85%
+- **Last Updated:** November 2025
+```
 
 ---
 

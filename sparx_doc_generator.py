@@ -21,6 +21,7 @@ from sparx_ea_doc.generators import (
     ClassGenerator
 )
 from sparx_ea_doc.quality_reporter import QualityReporter
+from sparx_ea_doc.template_renderer import TemplateRenderer
 
 
 # Configure logging
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 class SparxDocGenerator:
     """Main documentation generator orchestrator"""
 
-    def __init__(self, qea_path: str, output_dir: str = "docs", config: Optional[Dict] = None):
+    def __init__(self, qea_path: str, output_dir: str = "docs", config: Optional[Dict] = None, template_dir: str = None):
         """
         Initialize the documentation generator
 
@@ -42,6 +43,7 @@ class SparxDocGenerator:
             qea_path: Path to the .qea SQLite database file
             output_dir: Directory for output documentation
             config: Optional configuration dictionary
+            template_dir: Optional directory containing templates
         """
         self.qea_path = Path(qea_path)
         self.output_dir = Path(output_dir)
@@ -53,9 +55,16 @@ class SparxDocGenerator:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Initialized SparxDocGenerator for {self.qea_path}")
 
+        # Set up template directory
+        if template_dir is None:
+            self.template_dir = Path(__file__).parent / 'templates'
+        else:
+            self.template_dir = Path(template_dir)
+
         # Initialize components
         self.extractor = SparxExtractor(self.qea_path)
         self.quality_reporter = QualityReporter(self.extractor, self.output_dir, self.config)
+        self.template_renderer = TemplateRenderer(self.template_dir)
 
     def analyze_schema(self) -> Dict:
         """
@@ -149,6 +158,70 @@ class SparxDocGenerator:
         """Generate main index/navigation document"""
         logger.info("Generating main index...")
 
+        # Check if template exists
+        template_file = self.template_dir / 'index_template.md'
+        use_template = template_file.exists()
+
+        if use_template:
+            try:
+                # Build data dictionary for template
+                data = {
+                    'project_title': 'Sparx Enterprise Architect Model Documentation',
+                    'source_file': self.qea_path.name,
+                    'overview_text': 'This documentation was automatically generated from the Sparx Enterprise Architect model. Navigate through the sections below to explore different aspects of the system architecture.',
+                    'total_elements': self.quality_reporter.quality_metrics['total_elements'],
+                    'total_packages': len(self.extractor.packages),
+                    'total_relationships': len(self.extractor.connectors),
+                }
+
+                # Use Cases section
+                if self.extractor.use_cases:
+                    data['if_use_cases'] = True
+                    data['use_case_count'] = len(self.extractor.use_cases)
+                    data['actor_count'] = len(self.extractor.actors)
+                else:
+                    data['if_use_cases'] = False
+
+                # State Machines section
+                if self.extractor.state_machines:
+                    data['if_state_machines'] = True
+                    data['state_machine_count'] = len(self.extractor.state_machines)
+                else:
+                    data['if_state_machines'] = False
+
+                # Components section
+                if self.extractor.components:
+                    data['if_components'] = True
+                    data['component_count'] = len(self.extractor.components)
+                else:
+                    data['if_components'] = False
+
+                # Classes section
+                if self.extractor.classes:
+                    data['if_classes'] = True
+                    data['class_count'] = len(self.extractor.classes)
+                    data['interface_count'] = len(self.extractor.interfaces)
+                    data['enumeration_count'] = len(self.extractor.enumerations)
+                else:
+                    data['if_classes'] = False
+
+                # Reports section (always present)
+                data['if_reports'] = True
+
+                # Load and render template
+                template = self.template_renderer.load_template('index_template.md')
+                index_content = self.template_renderer.render(template, data)
+
+                with open(self.output_dir / 'index.md', 'w') as f:
+                    f.write(index_content)
+
+                logger.info("Main index generated using template")
+                return
+
+            except Exception as e:
+                logger.warning(f"Template rendering failed for index: {e}, using fallback")
+
+        # Fallback to hard-coded generation
         index_content = "# Sparx Enterprise Architect Model Documentation\n\n"
         index_content += f"**Source:** {self.qea_path.name}\n\n"
 
