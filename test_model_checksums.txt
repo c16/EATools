@@ -1,0 +1,33 @@
+Model file: test_model.qea
+Model checksum: ea6b4c5f76c106d671afc937deade9e018c8cdaad6028ccec32503b9caf61203
+Generated files: 27
+
+File checksums:
+----------------------------------------------------------------------
+975452b908089347163e9440d58e4f0824d83ad7ede273a558a1424dd9cfaafe  classes/domain/anonymousdata.md
+e3b7a45213c599a760a8c5a2ded68b68a066e79b28c73e00779991afbbbde962  classes/domain/customerprofile.md
+7a1f092469a9876e2dc2861b44549e5e92266318fcea9decf380289c67a73503  classes/domain/entity.md
+fc347f4257bac7c783f83206d4ace23037a1ac6ccc78c3ef359174be72f9c2f4  classes/domain/order.md
+ac521ce2805f57c2cb1fc30ca8a6a5867dba7bb664dd309557f6ca8e705e201c  classes/domain/orderitem.md
+63a7e5aa34f323e679af5ead4edbcd1355555a67a88f6751883569de5691013c  classes/domain/role.md
+2281b4f65aa6d31901697e8874e209803721ca5f14c89c3dc72bc41041fffe60  classes/domain/user.md
+7508618a2ddd4ccc7716e42f15cb62ccffc56bbff3d42dcd10801dd9370c84c7  classes/index.md
+68e4444aad5342e95aa3399417f0acd44d3c3409f07d23208ac6180f7736cccc  components/comp-businesslogic.md
+579e2472bd79c394ddc101c505fc327663d4c3b8d1b87af33651ffca40fa62ab  components/comp-dataaccess.md
+8b46b5f44c38b35bf1eca1ddcf17d45780c2efa2344f88b69f65691711c13c47  components/comp-userinterface.md
+034177d041b7443a31fbcc67af5569fea0344f692935ec1032196eee8a2feec8  components/index.md
+bcb94d3c9764dafe4c51230f8dfa675701fffc2e7d4fe02034f3e1d8877cbaf5  components/interfaces.md
+dd5cd1eb00bf6fb51a0164ec6c0f73ca89b6e5032c295bbb4e949f1a992b3e16  index.md
+2763c582266715728652b40f430972cec45b35b2470df493f1c9026a125b98b6  reports/dependencies.md
+c16238e328f84672d046f5a67df5537943812d6353e2b8cfffbddde627ad86e8  reports/quality-report.md
+9021e8b255b310c01c9220538b7f34c8eaab11b9957086526a3d1471cb83a5d7  state-machines/index.md
+47aee33cc7b4a84c0f529bad54298a1e7fe29385181dc187349fd7cf087ee025  state-machines/sm-order-state-machine.md
+b8a760cf335f43cec5d620f100920a938678b805d4de9136968baab6f4232bf1  state-machines/sm-shipped.md
+63b758a637ee02affd44451f55d2a084d2ca21d5065c7ab422dc38ff51c41526  use-cases/actors.md
+3a5b76ca167cd07c04290cb46451b5d2912e933537fb15badc0577becf0982aa  use-cases/fetch-data.md
+c9e0d307a5da7f4b5e4cb9ac79777435ca7bf55d833fdc4ccb5bce1c14b28ef8  use-cases/generate-report.md
+6f5d8133c4140d495e09807c82062f6d041e18416dfc8dd213b900f11ebf93d6  use-cases/index.md
+d959082a3f15a976b32abe887c35dcf86a655e837314b1ecbedf8cff7560a9e9  use-cases/login-use-case.md
+5560baa41b893670a19765c913dcff89ae5a8505d6eb8048da49a1a975eb8a50  use-cases/process-order.md
+fbfe46eafa26b6f7e3d0dbb25ccd2af6115eabbfee83aff93d7fe3e1334d6af8  use-cases/reset-password.md
+135e508be268b0960fe5e4242f9c23a5de9603c1e272567eb292a580e9e32f9f  use-cases/validate-credentials.md
