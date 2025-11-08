@@ -1,5 +1,7 @@
 # Actors
 
+[Home](../index.md) > [Use Cases](index.md) > Actors
+
 This document lists all actors in the system.
 
 ## User (primary)

@@ -4,6 +4,7 @@ Component documentation generator module.
 
 import logging
 from pathlib import Path
+from ..utils import generate_breadcrumbs
 
 logger = logging.getLogger(__name__)
 
@@ -29,32 +30,36 @@ class ComponentGenerator:
         comp_dir = self.output_dir / 'components'
         comp_dir.mkdir(exist_ok=True)
 
+        index_file = comp_dir / 'index.md'
         comp_index_content = "# Components\n\n"
+        comp_index_content += generate_breadcrumbs(index_file, self.output_dir, "Components")
         comp_index_content += "This document provides an overview of all components in the system.\n\n"
         comp_index_content += "## Component List\n\n"
 
         # Generate documentation for each component
         for comp in self.extractor.components:
             comp_filename = f"comp-{comp.name.lower().replace(' ', '-')}.md"
+            comp_file = comp_dir / comp_filename
             comp_index_content += f"- [{comp.name}]({comp_filename})\n"
 
-            comp_content = self._generate_single_component(comp)
+            comp_content = self._generate_single_component(comp, comp_file)
 
-            with open(comp_dir / comp_filename, 'w') as f:
+            with open(comp_file, 'w') as f:
                 f.write(comp_content)
 
         # Generate interfaces catalog
         if self.extractor.interfaces:
             self._generate_interfaces_catalog(comp_dir)
 
-        with open(comp_dir / 'index.md', 'w') as f:
+        with open(index_file, 'w') as f:
             f.write(comp_index_content)
 
         logger.info(f"Generated documentation for {len(self.extractor.components)} components")
 
-    def _generate_single_component(self, comp) -> str:
+    def _generate_single_component(self, comp, comp_file: Path) -> str:
         """Generate documentation for a single component"""
         comp_content = f"# Component: {comp.name}\n\n"
+        comp_content += generate_breadcrumbs(comp_file, self.output_dir, comp.name)
 
         if comp.stereotype:
             comp_content += f"**Stereotype:** <<{comp.stereotype}>>\n\n"
@@ -143,7 +148,10 @@ class ComponentGenerator:
 
     def _generate_interfaces_catalog(self, comp_dir: Path):
         """Generate interfaces catalog"""
+        interfaces_file = comp_dir / 'interfaces.md'
+
         interfaces_content = "# Interfaces\n\n"
+        interfaces_content += generate_breadcrumbs(interfaces_file, self.output_dir, "Interfaces")
         interfaces_content += "This document lists all interfaces in the system.\n\n"
 
         for iface in self.extractor.interfaces:

@@ -1,5 +1,7 @@
 # Classes and Modules
 
+[Home](../index.md) > Classes
+
 This document provides an overview of all classes in the system.
 
 ## Packages

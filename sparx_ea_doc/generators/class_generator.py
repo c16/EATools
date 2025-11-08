@@ -5,6 +5,7 @@ Class and module documentation generator module.
 import logging
 from pathlib import Path
 from collections import defaultdict
+from ..utils import generate_breadcrumbs
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,9 @@ class ClassGenerator:
         for cls in self.extractor.classes:
             classes_by_package[cls.package_name].append(cls)
 
+        index_file = class_dir / 'index.md'
         class_index_content = "# Classes and Modules\n\n"
+        class_index_content += generate_breadcrumbs(index_file, self.output_dir, "Classes")
         class_index_content += "This document provides an overview of all classes in the system.\n\n"
         class_index_content += "## Packages\n\n"
 
@@ -46,14 +49,27 @@ class ClassGenerator:
 
             class_index_content += f"### {package_name}\n\n"
 
+            # Create package index
+            package_index_file = package_dir / 'index.md'
+            package_index_content = f"# {package_name} Package\n\n"
+            package_index_content += generate_breadcrumbs(package_index_file, self.output_dir, package_name)
+            package_index_content += f"Classes in the {package_name} package.\n\n"
+            package_index_content += "## Classes\n\n"
+
             for cls in sorted(classes, key=lambda x: x.name):
                 class_filename = f"{cls.name.lower().replace(' ', '-')}.md"
+                class_file = package_dir / class_filename
                 class_index_content += f"- [{cls.name}]({package_name.lower().replace(' ', '-')}/{class_filename})\n"
+                package_index_content += f"- [{cls.name}]({class_filename})\n"
 
-                class_content = self._generate_single_class(cls)
+                class_content = self._generate_single_class(cls, class_file)
 
-                with open(package_dir / class_filename, 'w') as f:
+                with open(class_file, 'w') as f:
                     f.write(class_content)
+
+            # Write package index
+            with open(package_index_file, 'w') as f:
+                f.write(package_index_content)
 
             class_index_content += "\n"
 
@@ -61,14 +77,15 @@ class ClassGenerator:
         if self.extractor.enumerations:
             class_index_content += self._generate_enumerations_section()
 
-        with open(class_dir / 'index.md', 'w') as f:
+        with open(index_file, 'w') as f:
             f.write(class_index_content)
 
         logger.info(f"Generated documentation for {len(self.extractor.classes)} classes")
 
-    def _generate_single_class(self, cls) -> str:
+    def _generate_single_class(self, cls, class_file: Path) -> str:
         """Generate documentation for a single class"""
         class_content = f"# Class: {cls.name}\n\n"
+        class_content += generate_breadcrumbs(class_file, self.output_dir, cls.name)
 
         if cls.stereotype:
             class_content += f"**Stereotype:** <<{cls.stereotype}>>\n\n"

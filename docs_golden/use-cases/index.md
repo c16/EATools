@@ -1,5 +1,7 @@
 # Use Cases
 
+[Home](../index.md) > Use Cases
+
 This document provides an overview of all use cases in the system.
 
 ## Use Case List

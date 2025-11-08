@@ -1,5 +1,7 @@
 # Components
 
+[Home](../index.md) > Components
+
 This document provides an overview of all components in the system.
 
 ## Component List

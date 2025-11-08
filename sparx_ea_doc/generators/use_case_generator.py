@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 from collections import defaultdict
 from typing import Dict, List
+from ..utils import generate_breadcrumbs
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,10 @@ class UseCaseGenerator:
 
     def _generate_actors_doc(self, uc_dir: Path):
         """Generate actors documentation"""
+        actors_file = uc_dir / 'actors.md'
+
         actors_content = "# Actors\n\n"
+        actors_content += generate_breadcrumbs(actors_file, self.output_dir, "Actors")
         actors_content += "This document lists all actors in the system.\n\n"
 
         for actor in self.extractor.actors:
@@ -56,29 +60,34 @@ class UseCaseGenerator:
 
     def _generate_use_case_docs(self, uc_dir: Path):
         """Generate individual use case documents"""
+        index_file = uc_dir / 'index.md'
+
         uc_index_content = "# Use Cases\n\n"
+        uc_index_content += generate_breadcrumbs(index_file, self.output_dir, "Use Cases")
         uc_index_content += "This document provides an overview of all use cases in the system.\n\n"
         uc_index_content += "## Use Case List\n\n"
 
         for uc in self.extractor.use_cases:
             uc_filename = f"{uc.name.lower().replace(' ', '-')}.md"
+            uc_file = uc_dir / uc_filename
 
             # Add to index
             uc_index_content += f"- [{uc.name}]({uc_filename})\n"
 
             # Generate individual use case file
-            uc_content = self._generate_single_use_case(uc)
+            uc_content = self._generate_single_use_case(uc, uc_file)
 
-            with open(uc_dir / uc_filename, 'w') as f:
+            with open(uc_file, 'w') as f:
                 f.write(uc_content)
 
         # Write index
-        with open(uc_dir / 'index.md', 'w') as f:
+        with open(index_file, 'w') as f:
             f.write(uc_index_content)
 
-    def _generate_single_use_case(self, uc) -> str:
+    def _generate_single_use_case(self, uc, uc_file: Path) -> str:
         """Generate documentation for a single use case"""
         uc_content = f"# {uc.name}\n\n"
+        uc_content += generate_breadcrumbs(uc_file, self.output_dir, uc.name)
 
         if uc.stereotype:
             uc_content += f"**Stereotype:** <<{uc.stereotype}>>\n\n"
