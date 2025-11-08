@@ -2,7 +2,7 @@ Model file: test_model.qea
 Model checksum: ea6b4c5f76c106d671afc937deade9e018c8cdaad6028ccec32503b9caf61203
 Generated files: 27
 
-File checksums:
+Golden file checksums:
 ----------------------------------------------------------------------
 975452b908089347163e9440d58e4f0824d83ad7ede273a558a1424dd9cfaafe  classes/domain/anonymousdata.md
 e3b7a45213c599a760a8c5a2ded68b68a066e79b28c73e00779991afbbbde962  classes/domain/customerprofile.md
@@ -17,9 +17,9 @@ ac521ce2805f57c2cb1fc30ca8a6a5867dba7bb664dd309557f6ca8e705e201c  classes/domain
 8b46b5f44c38b35bf1eca1ddcf17d45780c2efa2344f88b69f65691711c13c47  components/comp-userinterface.md
 034177d041b7443a31fbcc67af5569fea0344f692935ec1032196eee8a2feec8  components/index.md
 bcb94d3c9764dafe4c51230f8dfa675701fffc2e7d4fe02034f3e1d8877cbaf5  components/interfaces.md
-dd5cd1eb00bf6fb51a0164ec6c0f73ca89b6e5032c295bbb4e949f1a992b3e16  index.md
-2763c582266715728652b40f430972cec45b35b2470df493f1c9026a125b98b6  reports/dependencies.md
-c16238e328f84672d046f5a67df5537943812d6353e2b8cfffbddde627ad86e8  reports/quality-report.md
+ed4a8e476381e7dc5be6890d7d161fbb2e12d3d3c85a1cc8c4a8c87affdd37c6  index.md
+8855a93be7dbd107390dc08f9677807a0479f15e912cbd05865c0edbe06898b9  reports/dependencies.md
+c79e38fe253b0cc2bbdb684c6bc5ff424e43493a4a174959bf4492425868be27  reports/quality-report.md
 9021e8b255b310c01c9220538b7f34c8eaab11b9957086526a3d1471cb83a5d7  state-machines/index.md
 47aee33cc7b4a84c0f529bad54298a1e7fe29385181dc187349fd7cf087ee025  state-machines/sm-order-state-machine.md
 b8a760cf335f43cec5d620f100920a938678b805d4de9136968baab6f4232bf1  state-machines/sm-shipped.md

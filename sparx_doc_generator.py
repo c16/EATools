@@ -150,7 +150,6 @@ class SparxDocGenerator:
         logger.info("Generating main index...")
 
         index_content = "# Sparx Enterprise Architect Model Documentation\n\n"
-        index_content += f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
         index_content += f"**Source:** {self.qea_path.name}\n\n"
 
         index_content += "## Overview\n\n"
