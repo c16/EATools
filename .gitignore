@@ -41,6 +41,8 @@ venv.bak/
 # Generated documentation
 docs/
 output/
+docs_latest/
+test_output/
 
 # Test files
 *.qea
