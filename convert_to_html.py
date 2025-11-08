@@ -3,9 +3,28 @@
 Convert all markdown documentation to HTML using pandoc.
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
+
+
+def fix_html_links(html_file: Path):
+    """
+    Fix links in HTML file to point to .html instead of .md
+
+    Args:
+        html_file: Path to HTML file to fix
+    """
+    with open(html_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Replace .md links with .html links
+    # Matches: href="something.md" or href="path/to/something.md"
+    content = re.sub(r'href="([^"]+)\.md"', r'href="\1.html"', content)
+
+    with open(html_file, 'w', encoding='utf-8') as f:
+        f.write(content)
 
 
 def convert_md_to_html(docs_dir: Path, css_url: str = "https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"):
@@ -54,6 +73,10 @@ def convert_md_to_html(docs_dir: Path, css_url: str = "https://cdn.jsdelivr.net/
 
         try:
             subprocess.run(cmd, check=True, capture_output=True)
+
+            # Fix links in the generated HTML
+            fix_html_links(html_file)
+
             converted += 1
             print(f"✓ {md_file.relative_to(docs_path)}")
         except subprocess.CalledProcessError as e:
@@ -65,6 +88,7 @@ def convert_md_to_html(docs_dir: Path, css_url: str = "https://cdn.jsdelivr.net/
     print(f"  ✓ Converted: {converted}")
     print(f"  ✗ Failed: {failed}")
     print(f"  HTML files saved alongside markdown files")
+    print(f"  Links updated to reference .html files")
     print(f"{'='*60}")
 
 
