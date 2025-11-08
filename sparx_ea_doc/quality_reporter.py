@@ -61,7 +61,6 @@ class QualityReporter:
         report_dir.mkdir(exist_ok=True)
 
         report_content = "# Documentation Quality Report\n\n"
-        report_content += f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
         report_content += f"**Total Elements:** {self.quality_metrics['total_elements']}\n\n"
 
         # Undocumented elements
@@ -108,8 +107,6 @@ class QualityReporter:
         report_dir.mkdir(exist_ok=True)
 
         report_content = "# Dependency Analysis\n\n"
-        report_content += f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-
         # Analyze dependency connectors
         dep_connectors = [c for c in self.extractor.connectors if c.connector_type == 'Dependency']
 
