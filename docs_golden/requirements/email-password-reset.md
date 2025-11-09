@@ -1,8 +1,8 @@
-[Home](../index.md) > [Requirements](index.md) > Email Password Reset
+[Home](../index.md) > [Requirements](index.md) > REQ-008 - Email Password Reset
 
 
 
-# Email Password Reset
+# REQ-008 - Email Password Reset
 
 
 **Stereotype:** <<Functional>>

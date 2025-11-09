@@ -1,8 +1,8 @@
-[Home](../index.md) > [Requirements](index.md) > Stock Verification
+[Home](../index.md) > [Requirements](index.md) > REQ-015 - Stock Verification
 
 
 
-# Stock Verification
+# REQ-015 - Stock Verification
 
 
 **Stereotype:** <<Functional>>

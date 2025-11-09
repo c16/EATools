@@ -1,8 +1,8 @@
-[Home](../index.md) > [Requirements](index.md) > Password Reset Option Display
+[Home](../index.md) > [Requirements](index.md) > REQ-007 - Password Reset Option Display
 
 
 
-# Password Reset Option Display
+# REQ-007 - Password Reset Option Display
 
 
 **Stereotype:** <<Functional>>

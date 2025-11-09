@@ -513,7 +513,7 @@ class SparxExtractor:
         # Extract requirement objects
         # Note: Priority is stored in Note field, Difficulty in Complexity field
         cursor.execute("""
-            SELECT o.Object_ID, o.Name, o.Note, o.Stereotype, o.Scope,
+            SELECT o.Object_ID, o.Name, o.Alias, o.Note, o.Stereotype, o.Scope,
                    o.Version, o.ModifiedDate, o.ea_guid, o.Complexity, o.Status,
                    p.Name as Package
             FROM t_object o
@@ -543,6 +543,7 @@ class SparxExtractor:
                 stereotype=row['Stereotype'] or '',
                 package_name=row['Package'] or 'Unknown',
                 visibility=row['Scope'] or 'public',
+                alias=row['Alias'] or '',
                 version=row['Version'] or '',
                 modified_date=row['ModifiedDate'] or '',
                 guid=row['ea_guid'] or '',

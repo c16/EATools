@@ -1,8 +1,8 @@
-[Home](../index.md) > [Requirements](index.md) > Email Address Requirement
+[Home](../index.md) > [Requirements](index.md) > REQ-002 - Email Address Requirement
 
 
 
-# Email Address Requirement
+# REQ-002 - Email Address Requirement
 
 
 **Stereotype:** <<business rule>>

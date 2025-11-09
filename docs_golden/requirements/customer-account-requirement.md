@@ -1,8 +1,8 @@
-[Home](../index.md) > [Requirements](index.md) > Customer Account Requirement
+[Home](../index.md) > [Requirements](index.md) > REQ-010 - Customer Account Requirement
 
 
 
-# Customer Account Requirement
+# REQ-010 - Customer Account Requirement
 
 
 **Stereotype:** <<business rule>>

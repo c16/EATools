@@ -1,8 +1,8 @@
-[Home](../index.md) > [Requirements](index.md) > Item Stock Requirement
+[Home](../index.md) > [Requirements](index.md) > REQ-011 - Item Stock Requirement
 
 
 
-# Item Stock Requirement
+# REQ-011 - Item Stock Requirement
 
 
 **Stereotype:** <<business rule>>

@@ -1,8 +1,8 @@
-[Home](../index.md) > [Requirements](index.md) > Data Collection for Reports
+[Home](../index.md) > [Requirements](index.md) > REQ-026 - Data Collection for Reports
 
 
 
-# Data Collection for Reports
+# REQ-026 - Data Collection for Reports
 
 
 **Stereotype:** <<Functional>>

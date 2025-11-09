@@ -1,8 +1,8 @@
-[Home](../index.md) > [Requirements](index.md) > Payment Declined Error
+[Home](../index.md) > [Requirements](index.md) > REQ-024 - Payment Declined Error
 
 
 
-# Payment Declined Error
+# REQ-024 - Payment Declined Error
 
 
 **Stereotype:** <<Functional>>

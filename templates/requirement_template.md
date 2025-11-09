@@ -1,4 +1,4 @@
-# <requirement_name>
+# <requirement_display_name>
 <if_stereotype>
 
 **Stereotype:** <stereotype></if_stereotype>

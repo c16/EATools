@@ -67,7 +67,12 @@ class RequirementGenerator:
             req_index_content += f"## {stereotype}\n\n"
             for req in sorted(by_stereotype[stereotype], key=lambda r: r.name):
                 req_filename = f"{sanitize_filename(req.name)}.md"
-                req_index_content += f"- [{req.name}]({req_filename})"
+                # Create display name in "Alias - Name" format
+                if req.alias:
+                    display_name = f"{req.alias} - {req.name}"
+                else:
+                    display_name = req.name
+                req_index_content += f"- [{display_name}]({req_filename})"
                 if req.priority:
                     req_index_content += f" - **{req.priority}**"
                 req_index_content += "\n"
@@ -99,7 +104,12 @@ class RequirementGenerator:
         Returns:
             Generated content
         """
-        breadcrumbs = generate_breadcrumbs(req_file, self.output_dir, req.name)
+        # Create display name in "Alias - Name" format for breadcrumbs
+        if req.alias:
+            display_name = f"{req.alias} - {req.name}"
+        else:
+            display_name = req.name
+        breadcrumbs = generate_breadcrumbs(req_file, self.output_dir, display_name)
 
         # Try template-based generation first if template exists
         if self.use_template:
@@ -126,8 +136,15 @@ class RequirementGenerator:
         template = self.template_renderer.load_template('requirement_template.md')
 
         # Build data dictionary
+        # Create display name in "Alias - Name" format
+        if req.alias:
+            display_name = f"{req.alias} - {req.name}"
+        else:
+            display_name = req.name
+
         data = {
             'requirement_name': req.name,
+            'requirement_display_name': display_name,
             'package_name': req.package_name,
             'description': req.clean_note() or 'No description available',
         }
@@ -202,7 +219,13 @@ class RequirementGenerator:
         Returns:
             Generated content
         """
-        content = f"# {req.name}\n\n"
+        # Create display name in "Alias - Name" format
+        if req.alias:
+            display_name = f"{req.alias} - {req.name}"
+        else:
+            display_name = req.name
+
+        content = f"# {display_name}\n\n"
         content += breadcrumbs
         content += "\n\n"
 

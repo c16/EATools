@@ -1,8 +1,8 @@
-[Home](../index.md) > [Requirements](index.md) > Credential Validation
+[Home](../index.md) > [Requirements](index.md) > REQ-004 - Credential Validation
 
 
 
-# Credential Validation
+# REQ-004 - Credential Validation
 
 
 **Stereotype:** <<Functional>>

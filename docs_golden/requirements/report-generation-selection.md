@@ -1,8 +1,8 @@
-[Home](../index.md) > [Requirements](index.md) > Report Generation Selection
+[Home](../index.md) > [Requirements](index.md) > REQ-025 - Report Generation Selection
 
 
 
-# Report Generation Selection
+# REQ-025 - Report Generation Selection
 
 
 **Stereotype:** <<Functional>>

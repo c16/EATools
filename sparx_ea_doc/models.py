@@ -18,6 +18,7 @@ class Element:
     stereotype: str
     package_name: str
     visibility: str = 'public'
+    alias: str = ''
     version: str = ''
     modified_date: str = ''
     guid: str = ''

@@ -1,8 +1,8 @@
-[Home](../index.md) > [Requirements](index.md) > Payment Card Requirement
+[Home](../index.md) > [Requirements](index.md) > REQ-012 - Payment Card Requirement
 
 
 
-# Payment Card Requirement
+# REQ-012 - Payment Card Requirement
 
 
 **Stereotype:** <<business rule>>

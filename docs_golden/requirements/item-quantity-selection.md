@@ -1,8 +1,8 @@
-[Home](../index.md) > [Requirements](index.md) > Item Quantity Selection
+[Home](../index.md) > [Requirements](index.md) > REQ-014 - Item Quantity Selection
 
 
 
-# Item Quantity Selection
+# REQ-014 - Item Quantity Selection
 
 
 **Stereotype:** <<Functional>>
