@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {06ABC32E-3642-4382-B7BA-7D44B4CD3F68}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {462683B1-94ED-4179-99B9-B89F1F62AA9A}**
 
-**Description:** No description available
+**Description:** The system SHALL show an error screen for invalid addresses
 
 
 **Priority:** Medium
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Process Order](../use-cases/process-order.md)

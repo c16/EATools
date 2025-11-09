@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {C255C1B2-4F27-4a23-B70A-081D48E5ACEF}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {71F78111-4B11-4b67-B80A-65D5477F2AE6}**
 
-**Description:** No description available
+**Description:** The system SHALL present an error screen when payment is declined
 
 
 **Priority:** High
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Process Order](../use-cases/process-order.md)

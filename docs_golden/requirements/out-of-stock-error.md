@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {1D26EEC4-A27B-4b86-B1DB-A7A29166F169}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {667C6ECE-5900-4436-9C73-F8A7E191D657}**
 
-**Description:** No description available
+**Description:** The system SHALL show an error screen when items are out of stock
 
 
 **Priority:** Medium
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Process Order](../use-cases/process-order.md)

@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {62FFC15F-68A2-41cc-B44C-A4BA9C43011B}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {5ED8A973-B378-4906-A766-2F008ED26F81}**
 
-**Description:** No description available
+**Description:** The system SHALL allow customers to enter a new address when address is invalid
 
 
 **Priority:** Medium
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Process Order](../use-cases/process-order.md)

@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {34D678EB-41C3-4ee3-AB8C-73A685054E7A}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {06D90D7D-CA46-4d5c-BB60-27502DDBC625}**
 
-**Description:** No description available
+**Description:** The system SHALL show the reset password option when login fails
 
 
 **Priority:** Medium
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Login Use Case](../use-cases/login-use-case.md)

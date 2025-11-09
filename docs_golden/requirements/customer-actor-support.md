@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {69F6F55E-6CFF-4c3c-B01A-0D68665860C4}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {09D9BB68-EE38-4276-9B96-0A325161A250}**
 
-**Description:** No description available
+**Description:** The system SHALL support Customer as an actor for order processing
 
 
 **Priority:** High
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Process Order](../use-cases/process-order.md)

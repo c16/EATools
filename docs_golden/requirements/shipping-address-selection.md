@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {E4458901-88C1-4e62-AEE7-C3BE2213F4A3}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {C56103D8-2768-4246-9F3B-47B7891A93DC}**
 
-**Description:** No description available
+**Description:** The system SHALL allow users to select the shipping address
 
 
 **Priority:** Medium
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Process Order](../use-cases/process-order.md)

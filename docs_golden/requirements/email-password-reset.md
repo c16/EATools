@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {0CC99899-03E3-4a7e-B02B-BA092A933001}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {241ADA86-CF97-4356-8D44-4E73C1C7DC5D}**
 
-**Description:** No description available
+**Description:** The system SHALL reset user password via an email link
 
 
 **Priority:** High
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Reset Password](../use-cases/reset-password.md)

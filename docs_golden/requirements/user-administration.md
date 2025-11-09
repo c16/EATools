@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {59064FC0-B479-4fd9-81D6-7BCB5774BF68}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {E0A6630D-3A7E-4327-B47B-53EA60B319E2}**
 
-**Description:** No description available
+**Description:** Users SHALL be added to the system by the system administrator
 
 
 **Priority:** High
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Login Use Case](../use-cases/login-use-case.md)

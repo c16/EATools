@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {263E41B3-CF37-4e7a-8A2B-2F9124A9D5E0}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {BA708E43-3479-4c7e-95BA-DE7ACC054568}**
 
-**Description:** No description available
+**Description:** The system SHALL collect all data for report generation
 
 
 **Priority:** Medium
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Generate Report](../use-cases/generate-report.md)

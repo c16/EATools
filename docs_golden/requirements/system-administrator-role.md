@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {BCB71F69-E1B9-4f50-AE69-684444CA3FF1}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {B2A1EAD2-28CA-4bda-982B-2331A85D5D70}**
 
-**Description:** No description available
+**Description:** System Administrator SHALL be a secondary actor in password reset process
 
 
 **Priority:** Medium
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Reset Password](../use-cases/reset-password.md)

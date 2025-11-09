@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {93C6D16A-D9D4-4817-8FBA-CEC320FEDCD4}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {ABD3B124-2733-48d4-AF9F-011E3730C225}**
 
-**Description:** No description available
+**Description:** Users SHALL have an email address specified by the administrator
 
 
 **Priority:** High
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Login Use Case](../use-cases/login-use-case.md)

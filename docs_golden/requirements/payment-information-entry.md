@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {5751EEDF-090A-4213-93FB-13FD82DCEA88}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {A394E19B-6CFB-4a93-9D16-B5AFF2F97D39}**
 
-**Description:** No description available
+**Description:** The system SHALL allow customers to enter payment information
 
 
 **Priority:** High
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Process Order](../use-cases/process-order.md)

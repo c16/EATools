@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {D1F9F475-1A36-4e97-A1BC-232307CA8F1E}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {EBAFF6BA-8411-49af-96F2-284A798B1BC6}**
 
-**Description:** No description available
+**Description:** Customers SHALL have an account to process orders
 
 
 **Priority:** High
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Process Order](../use-cases/process-order.md)

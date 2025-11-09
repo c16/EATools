@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {53EA81B1-6089-484f-BF42-CB26ACA9494F}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {2EB229D8-292C-42eb-8C9D-3201E0725DF9}**
 
-**Description:** No description available
+**Description:** The system SHALL present collected data to the manager
 
 
 **Priority:** Medium
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Generate Report](../use-cases/generate-report.md)

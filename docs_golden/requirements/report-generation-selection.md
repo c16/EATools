@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {9C5924D1-D038-4824-B08A-FD47ECF5C356}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {2C41A8D9-2FBA-4767-B294-A1753E3EEBCF}**
 
-**Description:** No description available
+**Description:** The system SHALL allow managers to select generate report option
 
 
 **Priority:** Medium
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Generate Report](../use-cases/generate-report.md)

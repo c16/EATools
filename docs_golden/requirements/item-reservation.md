@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {5B217B5A-3813-4292-9690-3A54444E367B}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {E33A1396-3899-4633-B1BB-D8178EBE96FB}**
 
-**Description:** No description available
+**Description:** The system SHALL reserve items in the warehouse when selected
 
 
 **Priority:** High
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Process Order](../use-cases/process-order.md)

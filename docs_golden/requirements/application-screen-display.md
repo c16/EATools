@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {B86217DC-1F9A-47fa-B63A-1A4D75BE210E}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {BDE9B61A-0ABE-4a36-921A-F8B998FA1A13}**
 
-**Description:** No description available
+**Description:** The system SHALL display the application screen after successful login
 
 
 **Priority:** High
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Login Use Case](../use-cases/login-use-case.md)

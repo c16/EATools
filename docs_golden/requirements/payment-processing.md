@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {2A7229DC-59A4-4ab0-91C5-6271359CABA0}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {3D320E94-ED7C-4ced-A9BD-2A853722B0B1}**
 
-**Description:** No description available
+**Description:** The payment system SHALL take payment from the customer
 
 
 **Priority:** High
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Process Order](../use-cases/process-order.md)

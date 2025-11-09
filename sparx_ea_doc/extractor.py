@@ -511,10 +511,11 @@ class SparxExtractor:
         cursor = self.conn.cursor()
 
         # Extract requirement objects
-        # Note: Priority is stored in Note field, Difficulty in Complexity field
+        # Note: Priority is stored in PDATA2 field, Difficulty in Complexity field
         cursor.execute("""
             SELECT o.Object_ID, o.Name, o.Alias, o.Note, o.Stereotype, o.Scope,
                    o.Version, o.ModifiedDate, o.ea_guid, o.Complexity, o.Status,
+                   o.PDATA2 as Priority,
                    p.Name as Package
             FROM t_object o
             LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
@@ -524,22 +525,11 @@ class SparxExtractor:
 
         requirements_dict = {}
         for row in cursor.fetchall():
-            # In EA, priority is often stored in the Note field for requirements
-            # If Note looks like a priority value (High, Medium, Low), treat it as such
-            note = row['Note'] or ''
-            priority = ''
-            description = note
-
-            # Check if note is a priority value
-            if note.strip() in ['High', 'Medium', 'Low']:
-                priority = note.strip()
-                description = ''  # No separate description in this model
-
             requirement = Requirement(
                 object_id=row['Object_ID'],
                 name=row['Name'],
                 object_type='Requirement',
-                note=description,
+                note=row['Note'] or '',
                 stereotype=row['Stereotype'] or '',
                 package_name=row['Package'] or 'Unknown',
                 visibility=row['Scope'] or 'public',
@@ -547,7 +537,7 @@ class SparxExtractor:
                 version=row['Version'] or '',
                 modified_date=row['ModifiedDate'] or '',
                 guid=row['ea_guid'] or '',
-                priority=priority,
+                priority=row['Priority'] or '',
                 difficulty=row['Complexity'] or '',
                 status=row['Status'] or '',
                 related_use_cases=[]

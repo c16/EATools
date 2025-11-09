@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {7003937E-2B49-454b-87A6-D788DF2B62E1}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:20 | GUID: {2E7DD8DE-6A5A-4d5c-BD91-40E3E37DA69B}**
 
-**Description:** No description available
+**Description:** The system SHALL support Manager as an actor for report generation
 
 
 **Priority:** Medium
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Generate Report](../use-cases/generate-report.md)

@@ -9,16 +9,16 @@
 
 **Package:** Requirements
 
-**Version: 1.0 | Modified: 2025-11-09 19:59:31 | GUID: {BD8D757D-C9A8-4b57-8760-D17521730578}**
+**Version: 1.0 | Modified: 2025-11-09 20:45:19 | GUID: {FE0488A8-6258-44bd-994F-6FBC559DB498}**
 
-**Description:** No description available
+**Description:** The system SHALL provide a login screen where users can enter username and password
 
 
 **Priority:** High
 
 **Difficulty:** 1
 
-**Status:** Development
+**Status:** Proposed
 
 **Related Use Cases:**
 - [Login Use Case](../use-cases/login-use-case.md)
