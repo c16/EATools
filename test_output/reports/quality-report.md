@@ -2,7 +2,7 @@
 
 [Home](../index.md) > [Reports](index.md) > Quality Report
 
-**Total Elements:** 30
+**Total Elements:** 61
 
 ## Undocumented Elements (22)
 
@@ -42,6 +42,6 @@ The following elements have insufficient or missing documentation:
 - Classes: 7
 - Interfaces: 1
 - Enumerations: 1
-- Total Relationships: 24
+- Total Relationships: 55
 
-**Documentation Rate:** 26.7%
+**Documentation Rate:** 63.9%

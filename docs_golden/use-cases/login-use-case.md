@@ -18,6 +18,15 @@
 - Validate Credentials
 
 
+**Requirements:**
+- [Application Screen Display](../requirements/application-screen-display.md)
+- [Email Address Requirement](../requirements/email-address-requirement.md)
+- [Incorrect Password Handling](../requirements/incorrect-password-handling.md)
+- [Password Reset Option Display](../requirements/password-reset-option-display.md)
+- [User Administration](../requirements/user-administration.md)
+- [User Login](../requirements/user-login.md)
+
+
 ## Preconditions
 
 **Email address**

@@ -12,3 +12,8 @@
 
 
 **Actors:** System Administrator (secondary)
+
+**Requirements:**
+- [Email Password Reset](../requirements/email-password-reset.md)
+- [System Administrator Role](../requirements/system-administrator-role.md)
+

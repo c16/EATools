@@ -19,7 +19,10 @@
 <extending_use_case></if_extends><if_related>
 
 **Related Use Cases:**
-<related_use_case></if_related><if_preconditions>
+<related_use_case></if_related><if_requirements>
+
+**Requirements:**
+<requirement_list></if_requirements><if_preconditions>
 
 ## Preconditions
 

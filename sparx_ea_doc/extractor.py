@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Dict, List, Optional
 from pathlib import Path
 
-from .models import Element, Attribute, Operation, Connector, Scenario, Constraint
+from .models import Element, Attribute, Operation, Connector, Scenario, Constraint, Requirement
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,7 @@ class SparxExtractor:
         self.classes: List[Element] = []
         self.interfaces: List[Element] = []
         self.enumerations: List[Element] = []
+        self.requirements: List[Requirement] = []
         self.attributes: Dict[int, List[Attribute]] = defaultdict(list)
         self.operations: Dict[int, List[Operation]] = defaultdict(list)
         self.connectors: List[Connector] = []
@@ -504,6 +505,80 @@ class SparxExtractor:
         total_constraints = sum(len(constraints) for constraints in self.constraints.values())
         logger.info(f"Extracted {total_constraints} constraints for {len(self.constraints)} objects")
 
+    def extract_requirements(self):
+        """Extract requirements and their relationships to use cases"""
+        logger.info("Extracting requirements...")
+        cursor = self.conn.cursor()
+
+        # Extract requirement objects
+        # Note: Priority is stored in PDATA2 field, Difficulty in Complexity field
+        cursor.execute("""
+            SELECT o.Object_ID, o.Name, o.Alias, o.Note, o.Stereotype, o.Scope,
+                   o.Version, o.ModifiedDate, o.ea_guid, o.Complexity, o.Status,
+                   o.PDATA2 as Priority,
+                   p.Name as Package
+            FROM t_object o
+            LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
+            WHERE o.Object_Type = 'Requirement'
+            ORDER BY o.Name
+        """)
+
+        requirements_dict = {}
+        for row in cursor.fetchall():
+            requirement = Requirement(
+                object_id=row['Object_ID'],
+                name=row['Name'],
+                object_type='Requirement',
+                note=row['Note'] or '',
+                stereotype=row['Stereotype'] or '',
+                package_name=row['Package'] or 'Unknown',
+                visibility=row['Scope'] or 'public',
+                alias=row['Alias'] or '',
+                version=row['Version'] or '',
+                modified_date=row['ModifiedDate'] or '',
+                guid=row['ea_guid'] or '',
+                priority=row['Priority'] or '',
+                difficulty=row['Complexity'] or '',
+                status=row['Status'] or '',
+                related_use_cases=[]
+            )
+            self.requirements.append(requirement)
+            self.elements[requirement.object_id] = requirement
+            requirements_dict[requirement.object_id] = requirement
+
+        # Extract relationships between requirements and use cases via connectors
+        cursor.execute("""
+            SELECT c.Start_Object_ID, c.End_Object_ID, c.Connector_Type,
+                   src.Name as SourceName, src.Object_Type as SourceType,
+                   dest.Name as DestName, dest.Object_Type as DestType
+            FROM t_connector c
+            JOIN t_object src ON c.Start_Object_ID = src.Object_ID
+            JOIN t_object dest ON c.End_Object_ID = dest.Object_ID
+            WHERE (src.Object_Type = 'Requirement' AND dest.Object_Type = 'UseCase')
+               OR (src.Object_Type = 'UseCase' AND dest.Object_Type = 'Requirement')
+        """)
+
+        for row in cursor.fetchall():
+            source_id = row['Start_Object_ID']
+            target_id = row['End_Object_ID']
+            source_type = row['SourceType']
+            target_type = row['DestType']
+
+            # Determine which is the requirement and which is the use case
+            if source_type == 'Requirement':
+                req_id = source_id
+                uc_name = row['DestName']
+            else:
+                req_id = target_id
+                uc_name = row['SourceName']
+
+            # Add use case to requirement's related list
+            if req_id in requirements_dict:
+                if uc_name not in requirements_dict[req_id].related_use_cases:
+                    requirements_dict[req_id].related_use_cases.append(uc_name)
+
+        logger.info(f"Extracted {len(self.requirements)} requirements")
+
     def extract_all(self):
         """Main extraction orchestrator"""
         logger.info("Starting model data extraction...")
@@ -521,6 +596,7 @@ class SparxExtractor:
             self.extract_connectors()
             self.extract_scenarios()
             self.extract_constraints()
+            self.extract_requirements()
 
             logger.info(f"Extraction complete. Total elements: {len(self.elements)}")
 
