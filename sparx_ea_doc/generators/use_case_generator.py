@@ -363,18 +363,29 @@ class UseCaseGenerator:
         includes_set = set()
         extends_set = set()
         associations_set = set()
+        invokes_set = set()
+        realizes_set = set()
 
         for conn in connectors:
+            # Check both connector_type and stereotype for relationship type
+            conn_type_lower = conn.connector_type.lower()
+            stereotype_lower = conn.stereotype.lower() if conn.stereotype else ''
+
             if conn.source_id == uc.object_id:
                 target = self.extractor.elements.get(conn.target_id)
                 if target:
                     if target.object_type == 'Actor':
                         actors_set.add(target.name)
                     elif target.object_type == 'UseCase':
-                        if 'include' in conn.connector_type.lower():
+                        # Check stereotype first, then connector_type
+                        if 'include' in stereotype_lower or 'include' in conn_type_lower:
                             includes_set.add(target.name)
-                        elif 'extend' in conn.connector_type.lower():
+                        elif 'extend' in stereotype_lower or 'extend' in conn_type_lower:
                             extends_set.add(target.name)
+                        elif 'invoke' in stereotype_lower or conn_type_lower == 'dependency':
+                            invokes_set.add(target.name)
+                        elif 'realize' in stereotype_lower or 'realise' in stereotype_lower or conn_type_lower == 'realisation':
+                            realizes_set.add(target.name)
                         else:
                             associations_set.add(target.name)
             elif conn.target_id == uc.object_id:
@@ -383,13 +394,16 @@ class UseCaseGenerator:
                     if source.object_type == 'Actor':
                         actors_set.add(source.name)
                     elif source.object_type == 'UseCase':
-                        if 'extend' in conn.connector_type.lower():
+                        # For incoming relationships, only extend relationships are shown
+                        if 'extend' in stereotype_lower or 'extend' in conn_type_lower:
                             extends_set.add(source.name)
 
         # Convert sets to sorted lists
         actors_list = sorted(actors_set)
         includes = sorted(includes_set)
         extends = sorted(extends_set)
+        invokes = sorted(invokes_set)
+        realizes = sorted(realizes_set)
         associations = sorted(associations_set)
 
         if actors_list:
@@ -405,6 +419,18 @@ class UseCaseGenerator:
             uc_content += "**Extended by:**\n"
             for ext in extends:
                 uc_content += f"- <<extend>> {ext}\n"
+            uc_content += "\n"
+
+        if invokes:
+            uc_content += "**Invokes:**\n"
+            for inv in invokes:
+                uc_content += f"- <<invokes>> {inv}\n"
+            uc_content += "\n"
+
+        if realizes:
+            uc_content += "**Realizes:**\n"
+            for rel in realizes:
+                uc_content += f"- <<realize>> {rel}\n"
             uc_content += "\n"
 
         if associations:

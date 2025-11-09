@@ -146,6 +146,7 @@ class Connector:
     notes: str
     trigger: str = ''
     guard: str = ''
+    stereotype: str = ''
 
 
 @dataclass

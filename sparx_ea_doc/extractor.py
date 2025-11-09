@@ -388,7 +388,7 @@ class SparxExtractor:
         cursor = self.conn.cursor()
 
         cursor.execute("""
-            SELECT c.Connector_ID, c.Connector_Type,
+            SELECT c.Connector_ID, c.Connector_Type, c.Stereotype,
                    c.Start_Object_ID, c.End_Object_ID,
                    c.SourceCard, c.DestCard,
                    c.SourceRole, c.DestRole,
@@ -415,7 +415,8 @@ class SparxExtractor:
                 target_role=row['DestRole'] or '',
                 notes=row['Notes'] or '',
                 trigger=row['PDATA1'] or '',
-                guard=row['PDATA2'] or ''
+                guard=row['PDATA2'] or '',
+                stereotype=row['Stereotype'] or ''
             )
             self.connectors.append(connector)
 

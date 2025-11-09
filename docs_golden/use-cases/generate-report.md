@@ -13,8 +13,8 @@
 
 **Actors:** Manager
 
-**Related Use Cases:**
-- Fetch Data
+**Includes:**
+- <<include>> Fetch Data
 
 
 **Requirements:**
