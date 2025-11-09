@@ -13,9 +13,14 @@
 
 **Actors:** User (primary)
 
-**Related Use Cases:**
-- Reset Password
-- Validate Credentials
+**Includes:**
+- <<include>> Validate Credentials
+
+**Extended by:**
+- <<extend>> Reset Password
+
+**Invokes:**
+- <<invokes>> Validate Credentials
 
 
 **Requirements:**
