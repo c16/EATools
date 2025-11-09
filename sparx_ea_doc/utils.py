@@ -107,3 +107,37 @@ def _format_section_name(dir_name: str) -> str:
     else:
         # Title case
         return formatted.title()
+
+
+def sanitize_filename(name: str) -> str:
+    """
+    Convert a name to a safe filename.
+
+    Args:
+        name: The name to sanitize
+
+    Returns:
+        Sanitized filename (without extension)
+
+    Examples:
+        'Login Use Case' -> 'login-use-case'
+        'Add Item to Basket' -> 'add-item-to-basket'
+    """
+    # Convert to lowercase and replace spaces with hyphens
+    filename = name.lower().replace(' ', '-')
+
+    # Remove or replace problematic characters
+    filename = filename.replace('/', '-').replace('\\', '-')
+    filename = filename.replace(':', '-').replace('*', '-')
+    filename = filename.replace('?', '').replace('"', '')
+    filename = filename.replace('<', '').replace('>', '')
+    filename = filename.replace('|', '-')
+
+    # Remove multiple consecutive hyphens
+    while '--' in filename:
+        filename = filename.replace('--', '-')
+
+    # Remove leading/trailing hyphens
+    filename = filename.strip('-')
+
+    return filename

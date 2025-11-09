@@ -10,3 +10,7 @@
 
 **Description:** Validate user name and password with the payment system.
 
+
+**Requirements:**
+- [Credential Validation](../requirements/credential-validation.md)
+

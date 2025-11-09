@@ -18,7 +18,8 @@ from sparx_ea_doc.generators import (
     UseCaseGenerator,
     StateMachineGenerator,
     ComponentGenerator,
-    ClassGenerator
+    ClassGenerator,
+    RequirementGenerator
 )
 from sparx_ea_doc.quality_reporter import QualityReporter
 from sparx_ea_doc.template_renderer import TemplateRenderer
@@ -134,12 +135,14 @@ class SparxDocGenerator:
 
         # Initialize generators
         uc_generator = UseCaseGenerator(self.extractor, self.output_dir)
+        req_generator = RequirementGenerator(self.extractor, self.output_dir)
         sm_generator = StateMachineGenerator(self.extractor, self.output_dir)
         comp_generator = ComponentGenerator(self.extractor, self.output_dir)
         class_generator = ClassGenerator(self.extractor, self.output_dir)
 
         # Generate all documentation
         uc_generator.generate()
+        req_generator.generate()
         sm_generator.generate()
         comp_generator.generate()
         class_generator.generate()
@@ -181,6 +184,13 @@ class SparxDocGenerator:
                     data['actor_count'] = len(self.extractor.actors)
                 else:
                     data['if_use_cases'] = False
+
+                # Requirements section
+                if self.extractor.requirements:
+                    data['if_requirements'] = True
+                    data['requirement_count'] = len(self.extractor.requirements)
+                else:
+                    data['if_requirements'] = False
 
                 # State Machines section
                 if self.extractor.state_machines:
@@ -235,6 +245,11 @@ class SparxDocGenerator:
             index_content += f"### [Use Cases](use-cases/index.md)\n\n"
             index_content += f"Contains {len(self.extractor.use_cases)} use cases and {len(self.extractor.actors)} actors describing "
             index_content += "system functionality and user interactions.\n\n"
+
+        if self.extractor.requirements:
+            index_content += f"### [Requirements](requirements/index.md)\n\n"
+            index_content += f"Contains {len(self.extractor.requirements)} requirements defining functional and non-functional "
+            index_content += "system requirements.\n\n"
 
         if self.extractor.state_machines:
             index_content += f"### [State Machines](state-machines/index.md)\n\n"

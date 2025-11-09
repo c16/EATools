@@ -17,6 +17,13 @@
 - Fetch Data
 
 
+**Requirements:**
+- [Data Collection for Reports](../requirements/data-collection-for-reports.md)
+- [Data Presentation to Manager](../requirements/data-presentation-to-manager.md)
+- [Manager Actor Support](../requirements/manager-actor-support.md)
+- [Report Generation Selection](../requirements/report-generation-selection.md)
+
+
 ### Basic Path: Basic Path
 
 **Steps:**

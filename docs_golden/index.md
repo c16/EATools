@@ -12,6 +12,10 @@ This documentation was automatically generated from the Sparx Enterprise Archite
 
 Contains 6 use cases and 5 actors describing system functionality and user interactions.
 
+### [Requirements](requirements/index.md)
+
+Contains 31 requirements defining functional and non-functional system requirements.
+
 
 ### [State Machines](state-machines/index.md)
 
@@ -35,7 +39,7 @@ Quality reports and analysis of the model documentation and structure.
 
 ## Model Statistics
 
-- **Total Elements:** 30
-- **Total Packages:** 7
-- **Total Relationships:** 24
+- **Total Elements:** 61
+- **Total Packages:** 8
+- **Total Relationships:** 55
 

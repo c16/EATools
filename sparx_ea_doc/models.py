@@ -164,3 +164,12 @@ class Constraint:
     name: str
     constraint_type: str  # Pre-condition, Post-condition, etc.
     notes: str = ''
+
+
+@dataclass
+class Requirement(Element):
+    """Requirement element"""
+    priority: str = ''  # High, Medium, Low
+    difficulty: str = ''
+    status: str = ''
+    related_use_cases: List[str] = field(default_factory=list)  # List of use case names

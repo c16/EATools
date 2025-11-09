@@ -203,6 +203,29 @@ class UseCaseGenerator:
         else:
             data['if_related'] = False
 
+        # Add related requirements
+        requirements_set = set()
+        for conn in connectors:
+            if conn.source_id == uc.object_id:
+                target = self.extractor.elements.get(conn.target_id)
+                if target and target.object_type == 'Requirement':
+                    requirements_set.add(target.name)
+            elif conn.target_id == uc.object_id:
+                source = self.extractor.elements.get(conn.source_id)
+                if source and source.object_type == 'Requirement':
+                    requirements_set.add(source.name)
+
+        if requirements_set:
+            data['if_requirements'] = True
+            req_content = ""
+            from ..utils import sanitize_filename
+            for req_name in sorted(requirements_set):
+                req_filename = sanitize_filename(req_name)
+                req_content += f"- [{req_name}](../requirements/{req_filename}.md)\n"
+            data['requirement_list'] = req_content
+        else:
+            data['if_requirements'] = False
+
         # Add preconditions and postconditions from constraints
         if uc.object_id in self.extractor.constraints:
             preconditions = [c for c in self.extractor.constraints[uc.object_id] if c.constraint_type == 'Pre-condition']

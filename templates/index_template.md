@@ -12,6 +12,10 @@
 
 Contains <use_case_count> use cases and <actor_count> actors describing system functionality and user interactions.
 </if_use_cases>
+<if_requirements>### [Requirements](requirements/index.md)
+
+Contains <requirement_count> requirements defining functional and non-functional system requirements.
+</if_requirements>
 <if_state_machines>
 ### [State Machines](state-machines/index.md)
 
