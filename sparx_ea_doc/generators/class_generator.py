@@ -5,6 +5,9 @@ Class and module documentation generator module.
 import logging
 from pathlib import Path
 from collections import defaultdict
+from typing import Dict, List
+from ..utils import generate_breadcrumbs
+from ..template_renderer import TemplateRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -12,16 +15,55 @@ logger = logging.getLogger(__name__)
 class ClassGenerator:
     """Generates class and module documentation"""
 
-    def __init__(self, extractor, output_dir: Path):
+    def __init__(self, extractor, output_dir: Path, template_dir: Path = None, diagram_guid_to_png: Dict[str, str] = None):
         """
         Initialize the class generator
 
         Args:
             extractor: SparxExtractor instance with extracted data
             output_dir: Output directory for documentation
+            template_dir: Directory containing templates (optional)
+            diagram_guid_to_png: Mapping of diagram GUIDs to PNG file paths
         """
         self.extractor = extractor
         self.output_dir = output_dir
+        self.diagram_guid_to_png = diagram_guid_to_png or {}
+
+        # Set up template renderer
+        if template_dir is None:
+            template_dir = Path(__file__).parent.parent.parent / 'templates'
+
+        self.template_renderer = TemplateRenderer(template_dir)
+        self.use_template = (template_dir / 'class_template.md').exists()
+
+    def _get_package_diagrams(self, package_names: List[str]) -> List[tuple]:
+        """
+        Get diagrams for given package names
+
+        Args:
+            package_names: List of package names to find diagrams for
+
+        Returns:
+            List of (diagram_guid, diagram_name) tuples
+        """
+        diagrams = []
+        cursor = self.extractor.conn.cursor()
+
+        # Query diagrams by package name
+        placeholders = ','.join('?' * len(package_names))
+        query = f"""
+            SELECT d.ea_guid, d.Name
+            FROM t_diagram d
+            JOIN t_package p ON d.Package_ID = p.Package_ID
+            WHERE p.Name IN ({placeholders})
+            ORDER BY d.Name
+        """
+        cursor.execute(query, package_names)
+
+        for row in cursor.fetchall():
+            diagrams.append((row[0], row[1]))
+
+        return diagrams
 
     def generate(self):
         """Generate class and module documentation"""
@@ -35,7 +77,9 @@ class ClassGenerator:
         for cls in self.extractor.classes:
             classes_by_package[cls.package_name].append(cls)
 
+        index_file = class_dir / 'index.md'
         class_index_content = "# Classes and Modules\n\n"
+        class_index_content += generate_breadcrumbs(index_file, self.output_dir, "Classes")
         class_index_content += "This document provides an overview of all classes in the system.\n\n"
         class_index_content += "## Packages\n\n"
 
@@ -46,14 +90,40 @@ class ClassGenerator:
 
             class_index_content += f"### {package_name}\n\n"
 
+            # Create package index
+            package_index_file = package_dir / 'index.md'
+            package_index_content = f"# {package_name} Package\n\n"
+            package_index_content += generate_breadcrumbs(package_index_file, self.output_dir, package_name)
+            package_index_content += f"Classes in the {package_name} package.\n\n"
+
+            # Add package-level diagrams
+            package_diagrams = self._get_package_diagrams([package_name])
+            if package_diagrams:
+                package_index_content += "## Diagrams\n\n"
+                for diagram_guid, diagram_name in package_diagrams:
+                    if diagram_guid in self.diagram_guid_to_png:
+                        png_path = self.diagram_guid_to_png[diagram_guid]
+                        png_path = f"../../{png_path}"  # Relative from classes/package/
+                        package_index_content += f"### {diagram_name}\n\n"
+                        package_index_content += f"![{diagram_name}]({png_path})\n\n"
+                package_index_content += "\n"
+
+            package_index_content += "## Classes\n\n"
+
             for cls in sorted(classes, key=lambda x: x.name):
                 class_filename = f"{cls.name.lower().replace(' ', '-')}.md"
+                class_file = package_dir / class_filename
                 class_index_content += f"- [{cls.name}]({package_name.lower().replace(' ', '-')}/{class_filename})\n"
+                package_index_content += f"- [{cls.name}]({class_filename})\n"
 
-                class_content = self._generate_single_class(cls)
+                class_content = self._generate_single_class(cls, class_file)
 
-                with open(package_dir / class_filename, 'w') as f:
+                with open(class_file, 'w') as f:
                     f.write(class_content)
+
+            # Write package index
+            with open(package_index_file, 'w') as f:
+                f.write(package_index_content)
 
             class_index_content += "\n"
 
@@ -61,21 +131,63 @@ class ClassGenerator:
         if self.extractor.enumerations:
             class_index_content += self._generate_enumerations_section()
 
-        with open(class_dir / 'index.md', 'w') as f:
+        with open(index_file, 'w') as f:
             f.write(class_index_content)
 
         logger.info(f"Generated documentation for {len(self.extractor.classes)} classes")
 
-    def _generate_single_class(self, cls) -> str:
+    def _generate_single_class(self, cls, class_file: Path) -> str:
         """Generate documentation for a single class"""
+        breadcrumbs = generate_breadcrumbs(class_file, self.output_dir, cls.name)
+
+        # Try to use template if available
+        if self.use_template:
+            try:
+                # TODO: Implement full template rendering for classes
+                # For now, falls through to hard-coded generation
+                pass
+            except Exception as e:
+                logger.warning(f"Template rendering failed for {cls.name}: {e}, using fallback")
+
+        # Fallback to original hard-coded generation
         class_content = f"# Class: {cls.name}\n\n"
+        class_content += breadcrumbs
 
         if cls.stereotype:
             class_content += f"**Stereotype:** <<{cls.stereotype}>>\n\n"
 
         class_content += f"**Package:** {cls.package_name}\n\n"
-        class_content += f"**Visibility:** {cls.visibility}\n\n"
+
+        # Add metadata line (version, modified date, guid)
+        metadata_parts = []
+        if cls.version:
+            metadata_parts.append(f"Version: {cls.version}")
+        if cls.modified_date:
+            metadata_parts.append(f"Modified: {cls.modified_date}")
+        if cls.guid:
+            metadata_parts.append(f"GUID: {cls.guid}")
+
+        if metadata_parts:
+            class_content += f"**{' | '.join(metadata_parts)}**\n\n"
+
         class_content += f"**Description:** {cls.clean_note() or 'No description available'}\n\n"
+
+        # Add diagrams
+        diagrams = self.extractor.get_diagrams_for_element(cls.object_id)
+        if diagrams:
+            class_content += "**Diagrams:**\n\n"
+            for diagram_guid in diagrams:
+                # Check if PNG rendering is available
+                if diagram_guid in self.diagram_guid_to_png:
+                    png_path = self.diagram_guid_to_png[diagram_guid]
+                    # Fix path to be relative from classes/PACKAGE/ subdirectory (two levels deep)
+                    png_path = f"../../{png_path}"
+                    class_content += f"![Diagram {diagram_guid}]({png_path})\n\n"
+                else:
+                    # Fallback to text placeholder
+                    class_content += f"- diagram {diagram_guid}\n"
+            if not any(diagram_guid in self.diagram_guid_to_png for diagram_guid in diagrams):
+                class_content += "\n"
 
         # Get inheritance and relationships
         connectors = self.extractor.get_connectors_for_element(cls.object_id)
@@ -115,36 +227,35 @@ class ClassGenerator:
                     if target:
                         dependencies.append(target.name)
 
-        # Attributes section
-        if cls.object_id in self.extractor.attributes:
-            attrs = self.extractor.attributes[cls.object_id]
-            class_content += "## Attributes\n\n"
-            class_content += "| Name | Type | Visibility | Default | Static | Const | Description |\n"
-            class_content += "|------|------|------------|---------|--------|-------|-------------|\n"
-
-            for attr in attrs:
-                static_flag = 'Yes' if attr.is_static else 'No'
-                const_flag = 'Yes' if attr.is_const else 'No'
-                desc = attr.notes or '-'
-                class_content += f"| {attr.name} | {attr.attr_type} | {attr.scope} | {attr.default or '-'} | {static_flag} | {const_flag} | {desc} |\n"
-
-            class_content += "\n"
-
-        # Operations section
+        # Operations section (public only) - show methods first
         if cls.object_id in self.extractor.operations:
-            ops = self.extractor.operations[cls.object_id]
-            class_content += "## Methods\n\n"
-            class_content += "| Name | Parameters | Return Type | Visibility | Abstract | Static | Description |\n"
-            class_content += "|------|------------|-------------|------------|----------|--------|-------------|\n"
+            ops = [op for op in self.extractor.operations[cls.object_id] if op.scope.lower() == 'public']
+            if ops:
+                class_content += "## Methods\n\n"
+                class_content += "| Name | Parameters | Return Type | Description |\n"
+                class_content += "|------|------------|-------------|-------------|\n"
 
-            for op in ops:
-                params_str = ', '.join([f"{name}: {ptype}" for name, ptype in op.parameters]) or '-'
-                abstract_flag = 'Yes' if op.is_abstract else 'No'
-                static_flag = 'Yes' if op.is_static else 'No'
-                desc = op.notes or '-'
-                class_content += f"| {op.name} | {params_str} | {op.return_type} | {op.scope} | {abstract_flag} | {static_flag} | {desc} |\n"
+                for op in ops:
+                    params_str = ', '.join([f"{name}: {ptype}" for name, ptype in op.parameters]) or '-'
+                    desc = op.notes or '-'
+                    class_content += f"| {op.name} | {params_str} | {op.return_type} | {desc} |\n"
 
-            class_content += "\n"
+                class_content += "\n"
+
+        # Attributes section (public only) - show attributes after methods
+        if cls.object_id in self.extractor.attributes:
+            attrs = [attr for attr in self.extractor.attributes[cls.object_id] if attr.scope.lower() == 'public']
+            if attrs:
+                class_content += "## Attributes\n\n"
+                class_content += "| Name | Type | Default | Const | Description |\n"
+                class_content += "|------|------|---------|-------|-------------|\n"
+
+                for attr in attrs:
+                    const_flag = 'Yes' if attr.is_const else 'No'
+                    desc = attr.notes or '-'
+                    class_content += f"| {attr.name} | {attr.attr_type} | {attr.default or '-'} | {const_flag} | {desc} |\n"
+
+                class_content += "\n"
 
         # Relationships section
         if inherits_from or implements or associations or dependencies:
