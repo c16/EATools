@@ -55,7 +55,7 @@ The user can continue to use the payment system.
 2. The user enters their password on the login screen
 3. <<include>> Validate Credentials
 4. The application screen is shown to the user
-   4a. Exception flow: Incorrect password
+   - _4a. Exception flow: Incorrect password_
 5. Use case end
 
 ### 4a Exception: Incorrect password

@@ -46,13 +46,13 @@
 1. The customer places the item in the basket
 2. The customer selects item quality
 3. The system checks the item quantity is in stock
-   3a. Alternate flow: Out of stock
+   - _3a. Alternate flow: Out of stock_
 4. The item gets reserved in the warehouse
 5. The customer enters payment information
 6. The user selects the shipping address
-   6a. Alternate flow: Invalid address
+   - _6a. Alternate flow: Invalid address_
 7. The payment system takes the payment from the customer
-   7a. Alternate flow: Payment declined
+   - _7a. Alternate flow: Payment declined_
 8. The package gets dispatched to the customer
 
 ### 3a Alternate: Out of stock

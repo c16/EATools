@@ -564,7 +564,7 @@ class UseCaseGenerator:
                                         if ext_guid in guid_to_scenario:
                                             ext_scenario = guid_to_scenario[ext_guid]
                                             flow_type = "Alternate flow" if ext_scenario.scenario_type == "Alternate" else "Exception flow"
-                                            content += f"   {ext_level}. {flow_type}: {ext_scenario.name}\n"
+                                            content += f"   - _{ext_level}. {flow_type}: {ext_scenario.name}_\n"
 
                         content += "\n"
 
@@ -602,7 +602,7 @@ class UseCaseGenerator:
                                     if ext_guid in guid_to_scenario:
                                         ext_scenario = guid_to_scenario[ext_guid]
                                         flow_type = "Alternate flow" if ext_scenario.scenario_type == "Alternate" else "Exception flow"
-                                        content += f"   {ext_level}. {flow_type}: {ext_scenario.name}\n"
+                                        content += f"   - _{ext_level}. {flow_type}: {ext_scenario.name}_\n"
 
                         content += "\n"
 
