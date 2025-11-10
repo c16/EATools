@@ -270,25 +270,6 @@ class UseCaseGenerator:
         else:
             data['if_requirements'] = False
 
-        # Add diagrams
-        diagrams = self.extractor.get_diagrams_for_element(uc.object_id)
-        if diagrams:
-            data['if_diagrams'] = True
-            diagram_content = ""
-            for diagram_guid in diagrams:
-                # Check if PNG rendering is available
-                if diagram_guid in self.diagram_guid_to_png:
-                    png_path = self.diagram_guid_to_png[diagram_guid]
-                    # Fix path to be relative from use-cases/ subdirectory
-                    png_path = f"../{png_path}"
-                    diagram_content += f"![Diagram {diagram_guid}]({png_path})\n\n"
-                else:
-                    # Fallback to text placeholder
-                    diagram_content += f"- diagram {diagram_guid}\n"
-            data['diagram_list'] = diagram_content
-        else:
-            data['if_diagrams'] = False
-
         # Add preconditions and postconditions from constraints
         if uc.object_id in self.extractor.constraints:
             preconditions = [c for c in self.extractor.constraints[uc.object_id] if c.constraint_type == 'Pre-condition']
@@ -501,23 +482,6 @@ class UseCaseGenerator:
             for assoc in associations:
                 uc_content += f"- {assoc}\n"
             uc_content += "\n"
-
-        # Add diagrams
-        diagrams = self.extractor.get_diagrams_for_element(uc.object_id)
-        if diagrams:
-            uc_content += "**Diagrams:**\n\n"
-            for diagram_guid in diagrams:
-                # Check if PNG rendering is available
-                if diagram_guid in self.diagram_guid_to_png:
-                    png_path = self.diagram_guid_to_png[diagram_guid]
-                    # Fix path to be relative from use-cases/ subdirectory
-                    png_path = f"../{png_path}"
-                    uc_content += f"![Diagram {diagram_guid}]({png_path})\n\n"
-                else:
-                    # Fallback to text placeholder
-                    uc_content += f"- diagram {diagram_guid}\n"
-            if not any(diagram_guid in self.diagram_guid_to_png for diagram_guid in diagrams):
-                uc_content += "\n"
 
         # Add pre-conditions and post-conditions from constraints table
         if uc.object_id in self.extractor.constraints:

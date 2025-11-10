@@ -131,25 +131,6 @@ class StateMachineGenerator:
             'description': sm.clean_note() or 'No description available',
         }
 
-        # Add diagrams
-        diagrams = self.extractor.get_diagrams_for_element(sm.object_id)
-        if diagrams:
-            data['if_diagrams'] = True
-            diagram_content = ""
-            for diagram_guid in diagrams:
-                # Check if PNG rendering is available
-                if diagram_guid in self.diagram_guid_to_png:
-                    png_path = self.diagram_guid_to_png[diagram_guid]
-                    # Fix path to be relative from state-machines/ subdirectory
-                    png_path = f"../{png_path}"
-                    diagram_content += f"![Diagram {diagram_guid}]({png_path})\n\n"
-                else:
-                    # Fallback to text placeholder
-                    diagram_content += f"- diagram {diagram_guid}\n"
-            data['diagram_list'] = diagram_content
-        else:
-            data['if_diagrams'] = False
-
         # Get states
         states = self.extractor.states.get(sm.object_id, [])
 
@@ -241,23 +222,6 @@ class StateMachineGenerator:
         sm_content += breadcrumbs
         sm_content += f"**Package:** {sm.package_name}\n\n"
         sm_content += f"**Description:** {sm.clean_note() or 'No description available'}\n\n"
-
-        # Add diagrams
-        diagrams = self.extractor.get_diagrams_for_element(sm.object_id)
-        if diagrams:
-            sm_content += "**Diagrams:**\n\n"
-            for diagram_guid in diagrams:
-                # Check if PNG rendering is available
-                if diagram_guid in self.diagram_guid_to_png:
-                    png_path = self.diagram_guid_to_png[diagram_guid]
-                    # Fix path to be relative from state-machines/ subdirectory
-                    png_path = f"../{png_path}"
-                    sm_content += f"![Diagram {diagram_guid}]({png_path})\n\n"
-                else:
-                    # Fallback to text placeholder
-                    sm_content += f"- diagram {diagram_guid}\n"
-            if not any(diagram_guid in self.diagram_guid_to_png for diagram_guid in diagrams):
-                sm_content += "\n"
 
         # Get states for this state machine
         states = self.extractor.states.get(sm.object_id, [])

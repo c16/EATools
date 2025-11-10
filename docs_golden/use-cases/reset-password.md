@@ -13,7 +13,3 @@
 **Extended by:**
 - <<extend>> Login Use Case
 
-**Diagrams:**
-
-![Diagram {1FC8DD1E-BDFA-4b48-8540-49BB480298C0}](../diagrams/usecases.png)
-

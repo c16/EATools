@@ -8,7 +8,3 @@
 
 **Description:** Validate user name and password with the payment system.
 
-**Diagrams:**
-
-![Diagram {1FC8DD1E-BDFA-4b48-8540-49BB480298C0}](../diagrams/usecases.png)
-

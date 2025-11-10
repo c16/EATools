@@ -8,10 +8,6 @@
 
 **Description:** Get customer profile data.
 
-**Diagrams:**
-
-![Diagram {0AE648F3-5F57-4906-A4F3-D35035194217}](../../diagrams/domain.png)
-
 ## Methods
 
 | Name | Parameters | Return Type | Description |

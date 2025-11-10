@@ -8,10 +8,6 @@
 
 **Actors:** Customer, Payment System
 
-**Diagrams:**
-
-![Diagram {1FC8DD1E-BDFA-4b48-8540-49BB480298C0}](../diagrams/usecases.png)
-
 ## Business Rules
 
 - The customer must have an account

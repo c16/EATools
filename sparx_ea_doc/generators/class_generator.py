@@ -172,23 +172,6 @@ class ClassGenerator:
 
         class_content += f"**Description:** {cls.clean_note() or 'No description available'}\n\n"
 
-        # Add diagrams
-        diagrams = self.extractor.get_diagrams_for_element(cls.object_id)
-        if diagrams:
-            class_content += "**Diagrams:**\n\n"
-            for diagram_guid in diagrams:
-                # Check if PNG rendering is available
-                if diagram_guid in self.diagram_guid_to_png:
-                    png_path = self.diagram_guid_to_png[diagram_guid]
-                    # Fix path to be relative from classes/PACKAGE/ subdirectory (two levels deep)
-                    png_path = f"../../{png_path}"
-                    class_content += f"![Diagram {diagram_guid}]({png_path})\n\n"
-                else:
-                    # Fallback to text placeholder
-                    class_content += f"- diagram {diagram_guid}\n"
-            if not any(diagram_guid in self.diagram_guid_to_png for diagram_guid in diagrams):
-                class_content += "\n"
-
         # Get inheritance and relationships
         connectors = self.extractor.get_connectors_for_element(cls.object_id)
 

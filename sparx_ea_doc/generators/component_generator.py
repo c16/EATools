@@ -143,40 +143,6 @@ class ComponentGenerator:
         comp_content += f"**Package:** {comp.package_name}\n\n"
         comp_content += f"**Description:** {comp.clean_note() or 'No description available'}\n\n"
 
-        # Add diagrams
-        diagrams = self.extractor.get_diagrams_for_element(comp.object_id)
-        if diagrams:
-            comp_content += "**Diagrams:**\n\n"
-            for diagram_guid in diagrams:
-                # Check if PNG rendering is available
-                if diagram_guid in self.diagram_guid_to_png:
-                    png_path = self.diagram_guid_to_png[diagram_guid]
-                    # Fix path to be relative from components/ subdirectory
-                    png_path = f"../{png_path}"
-                    comp_content += f"![Diagram {diagram_guid}]({png_path})\n\n"
-
-                    # Also show interfaces and ports on this diagram for reference
-                    diagram_objects = self.extractor.get_objects_on_diagram(diagram_guid)
-                    interfaces = [obj for obj in diagram_objects if obj[2] in ('ProvidedInterface', 'RequiredInterface', 'Interface', 'Port')]
-
-                    if interfaces:
-                        comp_content += "*Interfaces on this diagram:*\n"
-                        for obj_id, obj_name, obj_type in interfaces:
-                            comp_content += f"- {obj_name} ({obj_type})\n"
-                        comp_content += "\n"
-                else:
-                    # Fallback to text placeholder with interface list
-                    comp_content += f"- diagram {diagram_guid}\n"
-
-                    diagram_objects = self.extractor.get_objects_on_diagram(diagram_guid)
-                    interfaces = [obj for obj in diagram_objects if obj[2] in ('ProvidedInterface', 'RequiredInterface', 'Interface', 'Port')]
-
-                    if interfaces:
-                        for obj_id, obj_name, obj_type in interfaces:
-                            comp_content += f"- {obj_name} ({obj_type})\n"
-
-            comp_content += "\n"
-
         # Get interfaces and dependencies
         connectors = self.extractor.get_connectors_for_element(comp.object_id)
 

@@ -13,10 +13,6 @@
 **Includes:**
 - <<include>> Fetch Data
 
-**Diagrams:**
-
-![Diagram {1FC8DD1E-BDFA-4b48-8540-49BB480298C0}](../diagrams/usecases.png)
-
 ### Basic Path: Basic Path
 
 **Steps:**
