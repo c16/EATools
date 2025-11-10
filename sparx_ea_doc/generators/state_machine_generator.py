@@ -87,6 +87,17 @@ class StateMachineGenerator:
             'description': sm.clean_note() or 'No description available',
         }
 
+        # Add diagrams
+        diagrams = self.extractor.get_diagrams_for_element(sm.object_id)
+        if diagrams:
+            data['if_diagrams'] = True
+            diagram_content = ""
+            for diagram_guid in diagrams:
+                diagram_content += f"- diagram {diagram_guid}\n"
+            data['diagram_list'] = diagram_content
+        else:
+            data['if_diagrams'] = False
+
         # Get states
         states = self.extractor.states.get(sm.object_id, [])
 

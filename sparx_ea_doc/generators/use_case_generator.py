@@ -226,6 +226,17 @@ class UseCaseGenerator:
         else:
             data['if_requirements'] = False
 
+        # Add diagrams
+        diagrams = self.extractor.get_diagrams_for_element(uc.object_id)
+        if diagrams:
+            data['if_diagrams'] = True
+            diagram_content = ""
+            for diagram_guid in diagrams:
+                diagram_content += f"- diagram {diagram_guid}\n"
+            data['diagram_list'] = diagram_content
+        else:
+            data['if_diagrams'] = False
+
         # Add preconditions and postconditions from constraints
         if uc.object_id in self.extractor.constraints:
             preconditions = [c for c in self.extractor.constraints[uc.object_id] if c.constraint_type == 'Pre-condition']
@@ -437,6 +448,14 @@ class UseCaseGenerator:
             uc_content += "**Related Use Cases:**\n"
             for assoc in associations:
                 uc_content += f"- {assoc}\n"
+            uc_content += "\n"
+
+        # Add diagrams
+        diagrams = self.extractor.get_diagrams_for_element(uc.object_id)
+        if diagrams:
+            uc_content += "**Diagrams:**\n"
+            for diagram_guid in diagrams:
+                uc_content += f"- diagram {diagram_guid}\n"
             uc_content += "\n"
 
         # Add pre-conditions and post-conditions from constraints table

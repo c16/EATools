@@ -24,6 +24,10 @@
 - [Report Generation Selection](../requirements/report-generation-selection.md)
 
 
+**Diagrams:**
+- diagram {1FC8DD1E-BDFA-4b48-8540-49BB480298C0}
+
+
 ### Basic Path: Basic Path
 
 **Steps:**

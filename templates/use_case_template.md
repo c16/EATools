@@ -22,7 +22,10 @@
 <related_use_case></if_related><if_requirements>
 
 **Requirements:**
-<requirement_list></if_requirements><if_preconditions>
+<requirement_list></if_requirements><if_diagrams>
+
+**Diagrams:**
+<diagram_list></if_diagrams><if_preconditions>
 
 ## Preconditions
 

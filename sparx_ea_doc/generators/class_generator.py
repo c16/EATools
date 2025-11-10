@@ -127,6 +127,14 @@ class ClassGenerator:
 
         class_content += f"**Description:** {cls.clean_note() or 'No description available'}\n\n"
 
+        # Add diagrams
+        diagrams = self.extractor.get_diagrams_for_element(cls.object_id)
+        if diagrams:
+            class_content += "**Diagrams:**\n"
+            for diagram_guid in diagrams:
+                class_content += f"- diagram {diagram_guid}\n"
+            class_content += "\n"
+
         # Get inheritance and relationships
         connectors = self.extractor.get_connectors_for_element(cls.object_id)
 

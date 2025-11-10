@@ -45,6 +45,7 @@ class SparxExtractor:
         self.scenarios: Dict[int, List[Scenario]] = defaultdict(list)
         self.constraints: Dict[int, List[Constraint]] = defaultdict(list)
         self.packages: Dict[int, str] = {}
+        self.diagrams: Dict[int, List[str]] = defaultdict(list)  # object_id -> list of diagram GUIDs
 
     def connect_db(self) -> sqlite3.Connection:
         """Establish connection to the SQLite database"""
@@ -580,6 +581,35 @@ class SparxExtractor:
 
         logger.info(f"Extracted {len(self.requirements)} requirements")
 
+    def extract_diagrams(self):
+        """Extract diagram-to-object mappings"""
+        logger.info("Extracting diagram relationships...")
+        cursor = self.conn.cursor()
+
+        # Get all diagram-object relationships
+        cursor.execute("""
+            SELECT d.ea_guid, do.Object_ID
+            FROM t_diagram d
+            JOIN t_diagramobjects do ON d.Diagram_ID = do.Diagram_ID
+            ORDER BY d.Diagram_ID, do.Object_ID
+        """)
+
+        diagram_count = 0
+        current_diagram = None
+        for row in cursor.fetchall():
+            diagram_guid = row['ea_guid']
+            object_id = row['Object_ID']
+
+            if diagram_guid != current_diagram:
+                diagram_count += 1
+                current_diagram = diagram_guid
+
+            # Add diagram GUID to the object's diagram list
+            if diagram_guid and diagram_guid not in self.diagrams[object_id]:
+                self.diagrams[object_id].append(diagram_guid)
+
+        logger.info(f"Extracted {diagram_count} diagrams")
+
     def extract_all(self):
         """Main extraction orchestrator"""
         logger.info("Starting model data extraction...")
@@ -598,6 +628,7 @@ class SparxExtractor:
             self.extract_scenarios()
             self.extract_constraints()
             self.extract_requirements()
+            self.extract_diagrams()
 
             logger.info(f"Extraction complete. Total elements: {len(self.elements)}")
 
@@ -615,3 +646,7 @@ class SparxExtractor:
                 if connector_type is None or conn.connector_type == connector_type:
                     connectors.append(conn)
         return connectors
+
+    def get_diagrams_for_element(self, element_id: int) -> List[str]:
+        """Get all diagram GUIDs that contain a specific element"""
+        return self.diagrams.get(element_id, [])

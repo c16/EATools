@@ -5,6 +5,10 @@
 **Package:** <package_name>
 
 **Description:** <description>
+<if_diagrams>
+
+**Diagrams:**
+<diagram_list></if_diagrams>
 
 <if_interfaces>## Interfaces
 

@@ -88,6 +88,14 @@ class ComponentGenerator:
         comp_content += f"**Package:** {comp.package_name}\n\n"
         comp_content += f"**Description:** {comp.clean_note() or 'No description available'}\n\n"
 
+        # Add diagrams
+        diagrams = self.extractor.get_diagrams_for_element(comp.object_id)
+        if diagrams:
+            comp_content += "**Diagrams:**\n"
+            for diagram_guid in diagrams:
+                comp_content += f"- diagram {diagram_guid}\n"
+            comp_content += "\n"
+
         # Get interfaces and dependencies
         connectors = self.extractor.get_connectors_for_element(comp.object_id)
 
