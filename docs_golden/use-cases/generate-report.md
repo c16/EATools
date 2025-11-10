@@ -13,8 +13,8 @@
 
 **Actors:** Manager
 
-**Includes:**
-- <<include>> Fetch Data
+**Related Use Cases:**
+- Fetch Data
 
 
 **Requirements:**
@@ -22,6 +22,10 @@
 - [Data Presentation to Manager](../requirements/data-presentation-to-manager.md)
 - [Manager Actor Support](../requirements/manager-actor-support.md)
 - [Report Generation Selection](../requirements/report-generation-selection.md)
+
+
+**Diagrams:**
+- diagram {1FC8DD1E-BDFA-4b48-8540-49BB480298C0}
 
 
 ### Basic Path: Basic Path

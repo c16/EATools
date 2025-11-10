@@ -23,6 +23,7 @@ from sparx_ea_doc.generators import (
 )
 from sparx_ea_doc.quality_reporter import QualityReporter
 from sparx_ea_doc.template_renderer import TemplateRenderer
+from sparx_ea_doc.diff_generator import DiffGenerator
 
 
 # Configure logging
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
 class SparxDocGenerator:
     """Main documentation generator orchestrator"""
 
-    def __init__(self, qea_path: str, output_dir: str = "docs", config: Optional[Dict] = None, template_dir: str = None):
+    def __init__(self, qea_path: str, output_dir: str = "docs", config: Optional[Dict] = None, template_dir: str = None, track_changes: bool = False):
         """
         Initialize the documentation generator
 
@@ -45,10 +46,12 @@ class SparxDocGenerator:
             output_dir: Directory for output documentation
             config: Optional configuration dictionary
             template_dir: Optional directory containing templates
+            track_changes: Enable change tracking and diff generation
         """
         self.qea_path = Path(qea_path)
         self.output_dir = Path(output_dir)
         self.config = config or {}
+        self.track_changes = track_changes
 
         if not self.qea_path.exists():
             raise FileNotFoundError(f"QEA file not found: {self.qea_path}")
@@ -66,6 +69,12 @@ class SparxDocGenerator:
         self.extractor = SparxExtractor(self.qea_path)
         self.quality_reporter = QualityReporter(self.extractor, self.output_dir, self.config)
         self.template_renderer = TemplateRenderer(self.template_dir)
+
+        # Initialize diff generator if change tracking is enabled
+        self.diff_generator = None
+        if self.track_changes:
+            self.diff_generator = DiffGenerator(self.output_dir)
+            logger.info("Change tracking enabled")
 
     def analyze_schema(self) -> Dict:
         """
@@ -300,6 +309,46 @@ class SparxDocGenerator:
             self.extract_model_data()
             self.generate_documentation()
 
+            # Handle change tracking
+            if self.track_changes and self.diff_generator:
+                logger.info("=" * 60)
+                logger.info("Processing change tracking...")
+                logger.info("=" * 60)
+
+                prev_version = self.diff_generator.get_latest_version()
+
+                if prev_version:
+                    logger.info(f"Comparing with previous version: {prev_version['version_id']}")
+                    logger.info(f"Previous version timestamp: {prev_version['timestamp']}")
+
+                    try:
+                        # Generate diff documentation
+                        stats = self.diff_generator.generate_diff_documentation()
+
+                        logger.info("=" * 60)
+                        logger.info("Change Summary:")
+                        logger.info(f"  Files Added:     {len(stats['files_added'])}")
+                        logger.info(f"  Files Removed:   {len(stats['files_removed'])}")
+                        logger.info(f"  Files Modified:  {len(stats['files_modified'])}")
+                        logger.info(f"  Files Unchanged: {len(stats['files_unchanged'])}")
+                        logger.info(f"  Total Additions: +{stats['total_additions']} lines")
+                        logger.info(f"  Total Deletions: -{stats['total_deletions']} lines")
+                        logger.info("=" * 60)
+                        logger.info(f"Diff documentation generated in: {self.diff_generator.diff_output_dir}")
+                        logger.info(f"View changes summary: {self.diff_generator.diff_output_dir / 'CHANGES.md'}")
+
+                    except Exception as e:
+                        logger.warning(f"Failed to generate diff documentation: {e}")
+                else:
+                    logger.info("No previous version found - this is the first tracked version")
+
+                # Save current documentation as new version
+                logger.info("Saving current documentation as new version...")
+                version_id = self.diff_generator.save_current_version(
+                    description=f"Documentation generated from {self.qea_path.name}"
+                )
+                logger.info(f"Version saved: {version_id}")
+
             logger.info("=" * 60)
             logger.info(f"Documentation generated successfully in: {self.output_dir}")
             logger.info(f"Open {self.output_dir / 'index.md'} to start browsing")
@@ -353,6 +402,12 @@ def main():
         help='Enable verbose logging'
     )
 
+    parser.add_argument(
+        '--track-changes',
+        action='store_true',
+        help='Enable change tracking and generate diff documentation'
+    )
+
     args = parser.parse_args()
 
     if args.verbose:
@@ -367,7 +422,8 @@ def main():
     generator = SparxDocGenerator(
         qea_path=args.qea_file,
         output_dir=args.output,
-        config=config
+        config=config,
+        track_changes=args.track_changes
     )
 
     generator.run(analyze_schema_only=args.analyze_schema)

@@ -42,6 +42,8 @@ venv.bak/
 docs/
 docs_html/
 docs_latest/
+docs_diff/
+docs_history/
 output/
 test_docs/
 test_docs_html/

@@ -14,3 +14,7 @@
 **Requirements:**
 - [Data Fetching Capability](../requirements/data-fetching-capability.md)
 
+
+**Diagrams:**
+- diagram {1FC8DD1E-BDFA-4b48-8540-49BB480298C0}
+

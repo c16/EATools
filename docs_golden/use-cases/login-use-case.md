@@ -13,14 +13,9 @@
 
 **Actors:** User (primary)
 
-**Includes:**
-- <<include>> Validate Credentials
-
-**Extended by:**
-- <<extend>> Reset Password
-
-**Invokes:**
-- <<invokes>> Validate Credentials
+**Related Use Cases:**
+- Reset Password
+- Validate Credentials
 
 
 **Requirements:**
@@ -30,6 +25,10 @@
 - [Password Reset Option Display](../requirements/password-reset-option-display.md)
 - [User Administration](../requirements/user-administration.md)
 - [User Login](../requirements/user-login.md)
+
+
+**Diagrams:**
+- diagram {1FC8DD1E-BDFA-4b48-8540-49BB480298C0}
 
 
 ## Preconditions
@@ -60,7 +59,7 @@ The user can continue to use the payment system.
 2. The user enters their password on the login screen
 3. <<include>> Validate Credentials
 4. The application screen is shown to the user
-   4a. Exception flow: Incorrect password
+   - _4a. Exception flow: Incorrect password_
 5. Use case end
 
 ### 4a Exception: Incorrect password

@@ -8,6 +8,9 @@
 
 **Description:** Get anonimised data.
 
+**Diagrams:**
+- diagram {0AE648F3-5F57-4906-A4F3-D35035194217}
+
 ## Methods
 
 | Name | Parameters | Return Type | Description |

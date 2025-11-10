@@ -11,16 +11,19 @@ This is a Python-based documentation generator for Sparx Enterprise Architect mo
 - **Breadcrumb navigation** on every page for easy navigation back through hierarchy
 - **Quality reports** highlighting missing documentation and relationships
 - **Regression testing** to ensure consistent output across code changes
+- **Change tracking** with visual diff markup to compare documentation versions
 
 ## Project Structure
 
 ```
 EATools/
 ├── sparx_doc_generator.py          # Main orchestrator (291 lines)
+├── doc_diff_manager.py             # Version history and diff management utility
 ├── sparx_ea_doc/                   # Modular package structure
 │   ├── models.py                   # Data models (Element, UseCase, etc.)
 │   ├── extractor.py                # Database extraction logic (580 lines)
 │   ├── utils.py                    # Utilities (breadcrumb generation)
+│   ├── diff_generator.py           # Diff tracking and visual markup generator
 │   ├── generators/                 # Documentation generators
 │   │   ├── use_case_generator.py   # Use case documentation
 │   │   ├── state_machine_generator.py
@@ -29,7 +32,9 @@ EATools/
 │   └── quality_reporter.py         # Quality checks and reports
 ├── test_model.qea                  # Test Enterprise Architect model
 ├── test_doc_consistency.py         # Regression testing script
-└── docs_golden/                    # Golden baseline (29 reference files)
+├── docs_golden/                    # Golden baseline (29 reference files)
+├── docs_history/                   # Version snapshots (gitignored)
+└── docs_diff/                      # Diff-annotated documentation (gitignored)
 ```
 
 ## How to Use
@@ -48,6 +53,43 @@ This generates documentation in `docs/` directory:
 - `docs/reports/` - Quality and dependency reports
 - `docs/index.md` - Main index with breadcrumb navigation
 
+### Documentation Change Tracking
+
+Track changes between documentation versions with visual diff markup:
+
+```bash
+# Generate docs with change tracking enabled
+python sparx_doc_generator.py test_model.qea --track-changes
+```
+
+This will:
+1. Compare current documentation with previous version
+2. Generate diff-annotated files in `docs_diff/`
+3. Create a changes summary in `docs_diff/CHANGES.md`
+4. Save current version to `docs_history/` for future comparisons
+
+**Managing Version History:**
+
+```bash
+# List all tracked versions
+python doc_diff_manager.py list
+
+# Generate diff manually
+python doc_diff_manager.py generate
+
+# Show version details
+python doc_diff_manager.py info v_20251110_120000
+
+# Clean up old versions (keep last 5)
+python doc_diff_manager.py cleanup --keep 5
+```
+
+**Visual Diff Markup:**
+- <span style="background-color: #ccffcc;">Green highlight</span> = Added content
+- <span style="background-color: #ffcccc; text-decoration: line-through;">Red strikethrough</span> = Removed content
+- 🆕 marker = New files
+- Change statistics header on modified files
+
 ### Regression Testing
 
 ```bash
@@ -60,7 +102,22 @@ python test_doc_consistency.py --update
 
 ## Recent Work Completed
 
-### Breadcrumb Navigation (Latest - Merged)
+### Documentation Change Tracking (Latest)
+- Added visual diff tracking for documentation versions
+- Automatic version snapshots in `docs_history/`
+- Diff-annotated documentation in `docs_diff/` with visual markup
+- Change summary reports showing additions, deletions, modifications
+- Standalone `doc_diff_manager.py` utility for version management
+- Visual indicators: green highlights for additions, red strikethrough for deletions
+- `--track-changes` flag for main generator
+- Features:
+  - Line-by-line diff comparison
+  - New file detection
+  - Removed file tracking
+  - Statistics and change summaries
+  - Version cleanup and management
+
+### Breadcrumb Navigation (Merged)
 - Added hierarchical breadcrumb navigation to ALL documentation pages
 - Created package-level indexes (e.g., `classes/domain/index.md`)
 - Created reports index (`reports/index.md`)
@@ -190,8 +247,10 @@ navigation to all documentation pages.
 
 ---
 
-**Last Updated**: 2025-11-08
-**Current Branch**: develop
-**Latest Feature**: Breadcrumb navigation on all pages
+**Last Updated**: 2025-11-10
+**Current Branch**: develop (claude/doc-diff-011CUzi3tkyujWHdenUrgdtR)
+**Latest Feature**: Documentation change tracking with visual diff markup
 **Status**: All tests passing ✅
-**Files**: 29 golden baseline files with breadcrumbs
+**New Files**:
+- `sparx_ea_doc/diff_generator.py` - Diff generation and version management
+- `doc_diff_manager.py` - Standalone utility for managing versions
