@@ -101,7 +101,7 @@ class ComponentGenerator:
 
                 if interfaces:
                     for obj_id, obj_name, obj_type in interfaces:
-                        comp_content += f"  - {obj_name} ({obj_type})\n"
+                        comp_content += f"- {obj_name} ({obj_type})\n"
 
             comp_content += "\n"
 
