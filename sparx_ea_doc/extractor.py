@@ -46,6 +46,7 @@ class SparxExtractor:
         self.constraints: Dict[int, List[Constraint]] = defaultdict(list)
         self.packages: Dict[int, str] = {}
         self.diagrams: Dict[int, List[str]] = defaultdict(list)  # object_id -> list of diagram GUIDs
+        self.diagram_objects: Dict[str, List[tuple]] = defaultdict(list)  # diagram_guid -> list of (object_id, name, type)
 
     def connect_db(self) -> sqlite3.Connection:
         """Establish connection to the SQLite database"""
@@ -586,11 +587,12 @@ class SparxExtractor:
         logger.info("Extracting diagram relationships...")
         cursor = self.conn.cursor()
 
-        # Get all diagram-object relationships
+        # Get all diagram-object relationships with object details
         cursor.execute("""
-            SELECT d.ea_guid, do.Object_ID
+            SELECT d.ea_guid, do.Object_ID, o.Name, o.Object_Type
             FROM t_diagram d
             JOIN t_diagramobjects do ON d.Diagram_ID = do.Diagram_ID
+            JOIN t_object o ON do.Object_ID = o.Object_ID
             ORDER BY d.Diagram_ID, do.Object_ID
         """)
 
@@ -599,6 +601,8 @@ class SparxExtractor:
         for row in cursor.fetchall():
             diagram_guid = row['ea_guid']
             object_id = row['Object_ID']
+            object_name = row['Name']
+            object_type = row['Object_Type']
 
             if diagram_guid != current_diagram:
                 diagram_count += 1
@@ -607,6 +611,10 @@ class SparxExtractor:
             # Add diagram GUID to the object's diagram list
             if diagram_guid and diagram_guid not in self.diagrams[object_id]:
                 self.diagrams[object_id].append(diagram_guid)
+
+            # Add object to diagram's object list
+            if diagram_guid:
+                self.diagram_objects[diagram_guid].append((object_id, object_name, object_type))
 
         logger.info(f"Extracted {diagram_count} diagrams")
 
@@ -650,3 +658,7 @@ class SparxExtractor:
     def get_diagrams_for_element(self, element_id: int) -> List[str]:
         """Get all diagram GUIDs that contain a specific element"""
         return self.diagrams.get(element_id, [])
+
+    def get_objects_on_diagram(self, diagram_guid: str) -> List[tuple]:
+        """Get all objects (id, name, type) that appear on a specific diagram"""
+        return self.diagram_objects.get(diagram_guid, [])

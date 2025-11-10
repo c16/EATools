@@ -94,6 +94,15 @@ class ComponentGenerator:
             comp_content += "**Diagrams:**\n"
             for diagram_guid in diagrams:
                 comp_content += f"- diagram {diagram_guid}\n"
+
+                # Show interfaces and ports on this diagram
+                diagram_objects = self.extractor.get_objects_on_diagram(diagram_guid)
+                interfaces = [obj for obj in diagram_objects if obj[2] in ('ProvidedInterface', 'RequiredInterface', 'Interface', 'Port')]
+
+                if interfaces:
+                    for obj_id, obj_name, obj_type in interfaces:
+                        comp_content += f"  - {obj_name} ({obj_type})\n"
+
             comp_content += "\n"
 
         # Get interfaces and dependencies
