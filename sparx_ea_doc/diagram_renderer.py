@@ -186,6 +186,15 @@ class DiagramRenderer:
 
     def _format_node_label(self, obj_data: Dict, diagram_props: Dict) -> str:
         """Format node label for Graphviz with optional attributes and operations"""
+        # Check if this is an actor - use stick figure
+        if obj_data['object_type'] == 'Actor':
+            # Use Unicode stick figure character
+            stick_figure = "🧍"  # Standing person emoji
+            label = f"{stick_figure}\n{obj_data['name']}"
+            if obj_data['stereotype']:
+                label = f"<<{obj_data['stereotype']}>>\n{label}"
+            return label
+
         # Check if this is a class-like object
         is_class = obj_data['object_type'] in ('Class', 'Interface', 'Enumeration')
 
@@ -236,7 +245,7 @@ class DiagramRenderer:
             'Interface': ('box', 'lightyellow'),
             'Enumeration': ('box', 'lightgray'),
             'Component': ('component', 'lightgreen'),
-            'Actor': ('oval', 'lightsalmon'),
+            'Actor': ('plaintext', 'none'),  # Stick figure representation
             'UseCase': ('ellipse', 'lightcyan'),
         }
 
