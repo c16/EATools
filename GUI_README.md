@@ -61,7 +61,12 @@ python sparx_doc_gui.py
 
 3. **Generate Documentation**
    - Click "Generate Selected Documents"
-   - Choose an output directory
+   - Select a parent directory where you want to save documentation
+   - Choose output location:
+     - **Create New Folder**: Creates a timestamped subfolder (e.g., `docs_20251111_204500`)
+       - Edit the suggested name or press Enter to accept
+     - **Use Selected Directory**: Saves directly to selected directory
+     - **Cancel**: Cancels the generation
    - Wait for generation to complete
    - A success dialog will show when done
 
@@ -181,6 +186,37 @@ Result: Only classes from the selected package are generated.
 6. Generate
 
 Result: Only quality and dependency reports are created.
+
+### Example 4: Organize Documentation by Date
+
+When generating documentation, you can organize outputs by date using the folder creation feature:
+
+1. Open your .qea file
+2. Select documents to generate
+3. Click "Generate Selected Documents"
+4. Select parent directory (e.g., `~/Documents/ProjectDocs/`)
+5. In the folder dialog:
+   - Accept suggested timestamped name: `docs_20251111_204500`
+   - Or edit to custom name: `docs_v2.0_final`
+6. Click "Create New Folder"
+
+Result: Documentation saved to organized subfolder:
+- `~/Documents/ProjectDocs/docs_20251111_204500/`
+- Or `~/Documents/ProjectDocs/docs_v2.0_final/`
+
+This keeps multiple documentation versions organized without overwriting previous ones.
+
+### Example 5: Quick Regeneration to Existing Folder
+
+If you already have a documentation folder and want to regenerate:
+
+1. Open your .qea file
+2. Select documents
+3. Click "Generate Selected Documents"
+4. Navigate to existing parent directory
+5. Click "Use Selected Directory"
+
+Result: Documentation regenerated to existing folder, overwriting previous files.
 
 ## Comparison with CLI
 
