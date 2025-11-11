@@ -794,6 +794,63 @@ class DiagramRenderer:
                 bbox = draw.textbbox((0, 0), activity_text, font=font)
                 y_pos += bbox[3] - bbox[1] + 2
 
+    def _calculate_edge_intersection(self, src_x, src_y, tgt_x, tgt_y, tgt_left, tgt_top, tgt_right, tgt_bottom):
+        """
+        Calculate where a line from source to target center intersects with target rectangle edge
+
+        Returns: (intersection_x, intersection_y)
+        """
+        import math
+
+        # Direction vector
+        dx = tgt_x - src_x
+        dy = tgt_y - src_y
+
+        if dx == 0 and dy == 0:
+            return tgt_x, tgt_y
+
+        # Find intersection with each edge and pick the one that's closest to source
+        intersections = []
+
+        # Top edge
+        if dy != 0:
+            t = (tgt_top - src_y) / dy
+            if t > 0:
+                ix = src_x + t * dx
+                if tgt_left <= ix <= tgt_right:
+                    intersections.append((ix, tgt_top, t))
+
+        # Bottom edge
+        if dy != 0:
+            t = (tgt_bottom - src_y) / dy
+            if t > 0:
+                ix = src_x + t * dx
+                if tgt_left <= ix <= tgt_right:
+                    intersections.append((ix, tgt_bottom, t))
+
+        # Left edge
+        if dx != 0:
+            t = (tgt_left - src_x) / dx
+            if t > 0:
+                iy = src_y + t * dy
+                if tgt_top <= iy <= tgt_bottom:
+                    intersections.append((tgt_left, iy, t))
+
+        # Right edge
+        if dx != 0:
+            t = (tgt_right - src_x) / dx
+            if t > 0:
+                iy = src_y + t * dy
+                if tgt_top <= iy <= tgt_bottom:
+                    intersections.append((tgt_right, iy, t))
+
+        # Return the intersection closest to the source (smallest t)
+        if intersections:
+            intersections.sort(key=lambda x: x[2])
+            return int(intersections[0][0]), int(intersections[0][1])
+
+        return tgt_x, tgt_y
+
     def _draw_connectors_pil(self, draw, connectors: List[Dict], objects: Dict, font):
         """Draw connectors between objects"""
         for conn in connectors:
@@ -810,8 +867,14 @@ class DiagramRenderer:
             src_x = (source['left'] + source['right']) // 2
             src_y = -(source['top'] + source['bottom']) // 2  # Flip Y
 
-            tgt_x = (target['left'] + target['right']) // 2
-            tgt_y = -(target['top'] + target['bottom']) // 2  # Flip Y
+            tgt_center_x = (target['left'] + target['right']) // 2
+            tgt_center_y = -(target['top'] + target['bottom']) // 2  # Flip Y
+
+            # Calculate where line intersects with target edge
+            tgt_x, tgt_y = self._calculate_edge_intersection(
+                src_x, src_y, tgt_center_x, tgt_center_y,
+                target['left'], -target['bottom'], target['right'], -target['top']
+            )
 
             # Determine line style based on connector type
             conn_type = conn['connector_type']
