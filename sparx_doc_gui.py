@@ -118,7 +118,7 @@ class DocumentTreeBuilder:
         # Group classes by package
         classes_by_package = {}
         for cls in self.extractor.classes:
-            package_name = self.extractor.packages.get(cls.package_id, 'root')
+            package_name = cls.package_name if cls.package_name else 'root'
             if package_name not in classes_by_package:
                 classes_by_package[package_name] = []
             classes_by_package[package_name].append(cls)
