@@ -21,6 +21,7 @@ class StateMachineGenerator:
         """
         self.extractor = extractor
         self.output_dir = output_dir
+        self.should_generate = None  # Optional filter function for selective generation
 
     def generate(self):
         """Generate state machine documentation"""
@@ -43,12 +44,15 @@ class StateMachineGenerator:
         # Generate documentation for each state machine
         for sm in self.extractor.state_machines:
             sm_filename = f"sm-{sm.name.lower().replace(' ', '-')}.md"
+            sm_filepath = f"state-machines/{sm_filename}"
             sm_index_content += f"- [{sm.name}]({sm_filename})\n"
 
-            sm_content = self._generate_single_state_machine(sm)
+            # Generate individual state machine file if selected
+            if not self.should_generate or self.should_generate(sm_filepath):
+                sm_content = self._generate_single_state_machine(sm)
 
-            with open(sm_dir / sm_filename, 'w') as f:
-                f.write(sm_content)
+                with open(sm_dir / sm_filename, 'w') as f:
+                    f.write(sm_content)
 
         # Check for orphaned states (states without a parent state machine)
         orphaned_states = self.extractor.states.get(0, []) + self.extractor.states.get(None, [])
@@ -58,8 +62,10 @@ class StateMachineGenerator:
             for state in orphaned_states:
                 sm_index_content += f"- {state.name} ({state.object_type})\n"
 
-        with open(sm_dir / 'index.md', 'w') as f:
-            f.write(sm_index_content)
+        # Write index if selected
+        if not self.should_generate or self.should_generate('state-machines/index.md'):
+            with open(sm_dir / 'index.md', 'w') as f:
+                f.write(sm_index_content)
 
         logger.info(f"Generated documentation for {len(self.extractor.state_machines)} state machines")
 

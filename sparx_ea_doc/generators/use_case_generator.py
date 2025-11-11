@@ -23,6 +23,7 @@ class UseCaseGenerator:
         """
         self.extractor = extractor
         self.output_dir = output_dir
+        self.should_generate = None  # Optional filter function for selective generation
 
     def generate(self):
         """Generate use case documentation"""
@@ -41,6 +42,10 @@ class UseCaseGenerator:
 
     def _generate_actors_doc(self, uc_dir: Path):
         """Generate actors documentation"""
+        # Check if this file should be generated
+        if self.should_generate and not self.should_generate('use-cases/actors.md'):
+            return
+
         actors_content = "# Actors\n\n"
         actors_content += "This document lists all actors in the system.\n\n"
 
@@ -62,19 +67,22 @@ class UseCaseGenerator:
 
         for uc in self.extractor.use_cases:
             uc_filename = f"{uc.name.lower().replace(' ', '-')}.md"
+            uc_filepath = f"use-cases/{uc_filename}"
 
             # Add to index
             uc_index_content += f"- [{uc.name}]({uc_filename})\n"
 
-            # Generate individual use case file
-            uc_content = self._generate_single_use_case(uc)
+            # Generate individual use case file if selected
+            if not self.should_generate or self.should_generate(uc_filepath):
+                uc_content = self._generate_single_use_case(uc)
 
-            with open(uc_dir / uc_filename, 'w') as f:
-                f.write(uc_content)
+                with open(uc_dir / uc_filename, 'w') as f:
+                    f.write(uc_content)
 
-        # Write index
-        with open(uc_dir / 'index.md', 'w') as f:
-            f.write(uc_index_content)
+        # Write index if selected
+        if not self.should_generate or self.should_generate('use-cases/index.md'):
+            with open(uc_dir / 'index.md', 'w') as f:
+                f.write(uc_index_content)
 
     def _generate_single_use_case(self, uc) -> str:
         """Generate documentation for a single use case"""

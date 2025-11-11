@@ -21,6 +21,7 @@ class ComponentGenerator:
         """
         self.extractor = extractor
         self.output_dir = output_dir
+        self.should_generate = None  # Optional filter function for selective generation
 
     def generate(self):
         """Generate component documentation"""
@@ -36,19 +37,25 @@ class ComponentGenerator:
         # Generate documentation for each component
         for comp in self.extractor.components:
             comp_filename = f"comp-{comp.name.lower().replace(' ', '-')}.md"
+            comp_filepath = f"components/{comp_filename}"
             comp_index_content += f"- [{comp.name}]({comp_filename})\n"
 
-            comp_content = self._generate_single_component(comp)
+            # Generate individual component file if selected
+            if not self.should_generate or self.should_generate(comp_filepath):
+                comp_content = self._generate_single_component(comp)
 
-            with open(comp_dir / comp_filename, 'w') as f:
-                f.write(comp_content)
+                with open(comp_dir / comp_filename, 'w') as f:
+                    f.write(comp_content)
 
-        # Generate interfaces catalog
+        # Generate interfaces catalog if selected
         if self.extractor.interfaces:
-            self._generate_interfaces_catalog(comp_dir)
+            if not self.should_generate or self.should_generate('components/interfaces.md'):
+                self._generate_interfaces_catalog(comp_dir)
 
-        with open(comp_dir / 'index.md', 'w') as f:
-            f.write(comp_index_content)
+        # Write index if selected
+        if not self.should_generate or self.should_generate('components/index.md'):
+            with open(comp_dir / 'index.md', 'w') as f:
+                f.write(comp_index_content)
 
         logger.info(f"Generated documentation for {len(self.extractor.components)} components")
 

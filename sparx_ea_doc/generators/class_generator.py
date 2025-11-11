@@ -22,6 +22,7 @@ class ClassGenerator:
         """
         self.extractor = extractor
         self.output_dir = output_dir
+        self.should_generate = None  # Optional filter function for selective generation
 
     def generate(self):
         """Generate class and module documentation"""
@@ -48,12 +49,16 @@ class ClassGenerator:
 
             for cls in sorted(classes, key=lambda x: x.name):
                 class_filename = f"{cls.name.lower().replace(' ', '-')}.md"
-                class_index_content += f"- [{cls.name}]({package_name.lower().replace(' ', '-')}/{class_filename})\n"
+                safe_package = package_name.lower().replace(' ', '-')
+                class_filepath = f"classes/{safe_package}/{class_filename}"
+                class_index_content += f"- [{cls.name}]({safe_package}/{class_filename})\n"
 
-                class_content = self._generate_single_class(cls)
+                # Generate individual class file if selected
+                if not self.should_generate or self.should_generate(class_filepath):
+                    class_content = self._generate_single_class(cls)
 
-                with open(package_dir / class_filename, 'w') as f:
-                    f.write(class_content)
+                    with open(package_dir / class_filename, 'w') as f:
+                        f.write(class_content)
 
             class_index_content += "\n"
 
@@ -61,8 +66,10 @@ class ClassGenerator:
         if self.extractor.enumerations:
             class_index_content += self._generate_enumerations_section()
 
-        with open(class_dir / 'index.md', 'w') as f:
-            f.write(class_index_content)
+        # Write index if selected
+        if not self.should_generate or self.should_generate('classes/index.md'):
+            with open(class_dir / 'index.md', 'w') as f:
+                f.write(class_index_content)
 
         logger.info(f"Generated documentation for {len(self.extractor.classes)} classes")
 
