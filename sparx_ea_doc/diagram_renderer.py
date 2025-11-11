@@ -881,7 +881,7 @@ class DiagramRenderer:
 
             # Draw line (check stereotype for use case relationships)
             stereotype = conn.get('stereotype', '').lower()
-            line_width = 2 if conn_type == 'StateFlow' else 1  # Thicker lines for state transitions
+            line_width = 3 if conn_type == 'StateFlow' else 1  # Extra thick lines for state transitions
 
             if conn_type in ('Dependency', 'Usage') or stereotype in ('extend', 'include'):
                 # Dashed line for dependencies and use case extend/include
@@ -907,8 +907,8 @@ class DiagramRenderer:
                 # Simple arrow
                 self._draw_arrow_head(draw, src_x, src_y, tgt_x, tgt_y)
             elif conn_type in ('StateFlow', 'ControlFlow'):
-                # Filled triangular arrow for state transitions (large and highly visible)
-                self._draw_triangle_arrow(draw, src_x, src_y, tgt_x, tgt_y, size=20, filled=True)
+                # Filled triangular arrow for state transitions (extra large for visibility)
+                self._draw_triangle_arrow(draw, src_x, src_y, tgt_x, tgt_y, size=30, filled=True)
             # Association has no arrowhead by default
 
             # Draw label with stereotype if present
@@ -995,12 +995,12 @@ class DiagramRenderer:
         right_x = x2 - size * (dx * math.cos(angle) - dy * math.sin(angle))
         right_y = y2 - size * (dy * math.cos(angle) + dx * math.sin(angle))
 
-        # Draw triangle with thicker outline for visibility
+        # Draw triangle with extra thick outline for visibility
         points = [(x2, y2), (left_x, left_y), (right_x, right_y)]
         if filled:
-            draw.polygon(points, outline='black', fill='black', width=2)
+            draw.polygon(points, outline='black', fill='black', width=3)
         else:
-            draw.polygon(points, outline='black', fill='white', width=2)
+            draw.polygon(points, outline='black', fill='white', width=3)
 
     def _draw_diamond_arrow(self, draw, x1, y1, x2, y2, size=8, filled=False):
         """Draw a diamond arrow head (for aggregation/composition)"""
