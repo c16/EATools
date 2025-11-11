@@ -520,6 +520,77 @@ class SparxDocGUI:
                     if uc.name.lower().replace(' ', '-') == parts[1].replace('.md', ''):
                         return f"# {uc.name}\n\n**Package:** {uc.package_name}\n\n{uc.clean_note() or 'No description'}"
 
+        elif parts[0] == 'requirements':
+            if parts[1] == 'index.md':
+                preview = "# Requirements\n\n## Requirements List\n\n"
+                for req in self.extractor.requirements[:5]:
+                    preview += f"- {req.name}\n"
+                return preview
+            else:
+                # Individual requirement
+                for req in self.extractor.requirements:
+                    if req.name.lower().replace(' ', '-') == parts[1].replace('.md', ''):
+                        return f"# {req.name}\n\n**Type:** {req.type}\n\n{req.clean_note() or 'No description'}"
+
+        elif parts[0] == 'state-machines':
+            if parts[1] == 'index.md':
+                preview = "# State Machines\n\n## State Machine List\n\n"
+                for sm in self.extractor.state_machines[:5]:
+                    preview += f"- {sm.name}\n"
+                return preview
+            else:
+                # Individual state machine
+                for sm in self.extractor.state_machines:
+                    if sm.name.lower().replace(' ', '-') == parts[1].replace('.md', '').replace('sm-', ''):
+                        return f"# {sm.name}\n\n**Package:** {sm.package_name}\n\n{sm.clean_note() or 'No description'}"
+
+        elif parts[0] == 'components':
+            if parts[1] == 'index.md':
+                preview = "# Components\n\n## Component List\n\n"
+                for comp in self.extractor.components[:5]:
+                    preview += f"- {comp.name}\n"
+                return preview
+            elif parts[1] == 'interfaces.md':
+                return "# Component Interfaces\n\nProvided and required interfaces for all components."
+            else:
+                # Individual component
+                for comp in self.extractor.components:
+                    if comp.name.lower().replace(' ', '-') == parts[1].replace('.md', '').replace('comp-', ''):
+                        return f"# {comp.name}\n\n**Package:** {comp.package_name}\n\n{comp.clean_note() or 'No description'}"
+
+        elif parts[0] == 'classes':
+            if parts[1] == 'index.md':
+                preview = "# Classes and Modules\n\n## Class List\n\n"
+                for cls in self.extractor.classes[:5]:
+                    preview += f"- {cls.name} ({cls.package_name})\n"
+                return preview
+            elif len(parts) >= 3 and parts[2] == 'index.md':
+                # Package index
+                package_name = parts[1].title()
+                preview = f"# {package_name} Package\n\n## Classes in this package:\n\n"
+                for cls in self.extractor.classes:
+                    if cls.package_name.lower() == parts[1]:
+                        preview += f"- {cls.name}\n"
+                return preview
+            else:
+                # Individual class
+                class_name = parts[-1].replace('.md', '')
+                for cls in self.extractor.classes:
+                    if cls.name.lower().replace(' ', '-') == class_name:
+                        attrs_count = len(cls.attributes) if cls.attributes else 0
+                        ops_count = len(cls.operations) if cls.operations else 0
+                        return f"# {cls.name}\n\n**Package:** {cls.package_name}\n**Type:** {cls.type}\n\n" \
+                               f"Attributes: {attrs_count}\nOperations: {ops_count}\n\n" \
+                               f"{cls.clean_note() or 'No description'}"
+
+        elif parts[0] == 'reports':
+            if parts[1] == 'index.md':
+                return "# Reports\n\nQuality and analysis reports for the model."
+            elif parts[1] == 'quality-report.md':
+                return "# Quality Report\n\nDocumentation coverage and quality metrics for all model elements."
+            elif parts[1] == 'dependencies.md':
+                return "# Dependencies Report\n\nElement relationships and dependency analysis."
+
         return "(Preview not available for this document type)"
 
     def select_all(self):
