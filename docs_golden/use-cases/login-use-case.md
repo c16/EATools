@@ -2,22 +2,30 @@
 
 [Home](../index.md) > [Use Cases](index.md) > Login Use Case
 
+
+
 **Package:** UseCases
 
 **Version: 1.0 | Modified: 2025-11-05 20:02:49 | GUID: {3C1EC733-25CF-4d37-A38D-70C48FA12AEE}**
 
 **Description:** The login use case shows how the user logs into the system.
 
+
 **Actors:** User (primary)
 
-**Includes:**
-- <<include>> Validate Credentials
+**Related Use Cases:**
+- Reset Password
+- Validate Credentials
 
-**Extended by:**
-- <<extend>> Reset Password
 
-**Invokes:**
-- <<invokes>> Validate Credentials
+**Requirements:**
+- [Application Screen Display](../requirements/application-screen-display.md)
+- [Email Address Requirement](../requirements/email-address-requirement.md)
+- [Incorrect Password Handling](../requirements/incorrect-password-handling.md)
+- [Password Reset Option Display](../requirements/password-reset-option-display.md)
+- [User Administration](../requirements/user-administration.md)
+- [User Login](../requirements/user-login.md)
+
 
 ## Preconditions
 
@@ -29,11 +37,15 @@ The user must have an email address specified by the administrator.
 
 The user must have been added by the system administrator.
 
+
+
 ## Postconditions
 
 **User validated**
 
 The user can continue to use the payment system.
+
+
 
 ### Basic Path: Login
 
@@ -53,4 +65,5 @@ The user can continue to use the payment system.
 1. The incorrect password screen is shown to the user
 2. The reset password option is shown to the user
 3. Use case end
+
 
