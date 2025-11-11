@@ -25,6 +25,7 @@ from sparx_ea_doc.quality_reporter import QualityReporter
 from sparx_ea_doc.template_renderer import TemplateRenderer
 from sparx_ea_doc.diff_generator import DiffGenerator
 from sparx_ea_doc.diagram_renderer import DiagramRenderer
+from sparx_ea_doc.html_generator import HTMLGenerator
 
 
 # Configure logging
@@ -38,7 +39,7 @@ logger = logging.getLogger(__name__)
 class SparxDocGenerator:
     """Main documentation generator orchestrator"""
 
-    def __init__(self, qea_path: str, output_dir: str = "docs", config: Optional[Dict] = None, template_dir: str = None, track_changes: bool = False, render_diagrams: bool = True):
+    def __init__(self, qea_path: str, output_dir: str = "docs", config: Optional[Dict] = None, template_dir: str = None, track_changes: bool = False, render_diagrams: bool = True, generate_html: bool = False, html_output_dir: Optional[str] = None):
         """
         Initialize the documentation generator
 
@@ -49,12 +50,16 @@ class SparxDocGenerator:
             template_dir: Optional directory containing templates
             track_changes: Enable change tracking and diff generation
             render_diagrams: Enable diagram rendering to PNG
+            generate_html: Enable HTML generation from markdown
+            html_output_dir: Optional directory for HTML output (default: docs_html)
         """
         self.qea_path = Path(qea_path)
         self.output_dir = Path(output_dir)
         self.config = config or {}
         self.track_changes = track_changes
         self.render_diagrams = render_diagrams
+        self.generate_html = generate_html
+        self.html_output_dir = Path(html_output_dir) if html_output_dir else None
 
         if not self.qea_path.exists():
             raise FileNotFoundError(f"QEA file not found: {self.qea_path}")
@@ -418,9 +423,38 @@ class SparxDocGenerator:
                 )
                 logger.info(f"Version saved: {version_id}")
 
+            # Generate HTML if requested
+            if self.generate_html:
+                logger.info("=" * 60)
+                logger.info("Generating HTML documentation...")
+                logger.info("=" * 60)
+
+                try:
+                    html_gen = HTMLGenerator(self.output_dir, self.html_output_dir)
+                    stats = html_gen.generate_all()
+
+                    logger.info("HTML Generation Summary:")
+                    logger.info(f"  ✓ Converted: {stats['converted']}")
+                    logger.info(f"  ✗ Failed: {stats['failed']}")
+                    logger.info(f"  Total: {stats['total']}")
+                    logger.info(f"  Output: {stats['output_dir']}")
+
+                    if stats['failed'] > 0:
+                        logger.warning(f"  Some files failed to convert ({stats['failed']})")
+
+                except ImportError as e:
+                    logger.error(f"HTML generation requires markdown library: {e}")
+                    logger.error("Install with: pip install markdown")
+                except Exception as e:
+                    logger.error(f"HTML generation failed: {e}", exc_info=True)
+
             logger.info("=" * 60)
             logger.info(f"Documentation generated successfully in: {self.output_dir}")
             logger.info(f"Open {self.output_dir / 'index.md'} to start browsing")
+            if self.generate_html:
+                html_index = self.html_output_dir if self.html_output_dir else self.output_dir.parent / (self.output_dir.name + "_html")
+                logger.info(f"HTML documentation available in: {html_index}")
+                logger.info(f"Open {html_index / 'index.html'} in a web browser")
             logger.info("=" * 60)
 
         except Exception as e:
@@ -477,6 +511,17 @@ def main():
         help='Enable change tracking and generate diff documentation'
     )
 
+    parser.add_argument(
+        '--html',
+        action='store_true',
+        help='Generate HTML documentation in addition to markdown'
+    )
+
+    parser.add_argument(
+        '--html-output',
+        help='Output directory for HTML documentation (default: docs_html)'
+    )
+
     args = parser.parse_args()
 
     if args.verbose:
@@ -492,7 +537,9 @@ def main():
         qea_path=args.qea_file,
         output_dir=args.output,
         config=config,
-        track_changes=args.track_changes
+        track_changes=args.track_changes,
+        generate_html=args.html,
+        html_output_dir=args.html_output
     )
 
     generator.run(analyze_schema_only=args.analyze_schema)

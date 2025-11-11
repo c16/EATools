@@ -310,6 +310,12 @@ class SparxDocGUI:
                                          command=self.generate_documentation, state=tk.DISABLED)
         self.generate_button.pack(side=tk.RIGHT)
 
+        # HTML generation checkbox
+        self.generate_html_var = tk.BooleanVar(value=False)
+        self.html_checkbox = ttk.Checkbutton(bottom_frame, text="Generate HTML",
+                                             variable=self.generate_html_var)
+        self.html_checkbox.pack(side=tk.RIGHT, padx=10)
+
         self.status_label = ttk.Label(bottom_frame, text="Open a .qea file to begin", foreground="gray")
         self.status_label.pack(side=tk.LEFT)
 
@@ -513,6 +519,77 @@ class SparxDocGUI:
                 for uc in self.extractor.use_cases:
                     if uc.name.lower().replace(' ', '-') == parts[1].replace('.md', ''):
                         return f"# {uc.name}\n\n**Package:** {uc.package_name}\n\n{uc.clean_note() or 'No description'}"
+
+        elif parts[0] == 'requirements':
+            if parts[1] == 'index.md':
+                preview = "# Requirements\n\n## Requirements List\n\n"
+                for req in self.extractor.requirements[:5]:
+                    preview += f"- {req.name}\n"
+                return preview
+            else:
+                # Individual requirement
+                for req in self.extractor.requirements:
+                    if req.name.lower().replace(' ', '-') == parts[1].replace('.md', ''):
+                        return f"# {req.name}\n\n**Type:** {req.type}\n\n{req.clean_note() or 'No description'}"
+
+        elif parts[0] == 'state-machines':
+            if parts[1] == 'index.md':
+                preview = "# State Machines\n\n## State Machine List\n\n"
+                for sm in self.extractor.state_machines[:5]:
+                    preview += f"- {sm.name}\n"
+                return preview
+            else:
+                # Individual state machine
+                for sm in self.extractor.state_machines:
+                    if sm.name.lower().replace(' ', '-') == parts[1].replace('.md', '').replace('sm-', ''):
+                        return f"# {sm.name}\n\n**Package:** {sm.package_name}\n\n{sm.clean_note() or 'No description'}"
+
+        elif parts[0] == 'components':
+            if parts[1] == 'index.md':
+                preview = "# Components\n\n## Component List\n\n"
+                for comp in self.extractor.components[:5]:
+                    preview += f"- {comp.name}\n"
+                return preview
+            elif parts[1] == 'interfaces.md':
+                return "# Component Interfaces\n\nProvided and required interfaces for all components."
+            else:
+                # Individual component
+                for comp in self.extractor.components:
+                    if comp.name.lower().replace(' ', '-') == parts[1].replace('.md', '').replace('comp-', ''):
+                        return f"# {comp.name}\n\n**Package:** {comp.package_name}\n\n{comp.clean_note() or 'No description'}"
+
+        elif parts[0] == 'classes':
+            if parts[1] == 'index.md':
+                preview = "# Classes and Modules\n\n## Class List\n\n"
+                for cls in self.extractor.classes[:5]:
+                    preview += f"- {cls.name} ({cls.package_name})\n"
+                return preview
+            elif len(parts) >= 3 and parts[2] == 'index.md':
+                # Package index
+                package_name = parts[1].title()
+                preview = f"# {package_name} Package\n\n## Classes in this package:\n\n"
+                for cls in self.extractor.classes:
+                    if cls.package_name.lower() == parts[1]:
+                        preview += f"- {cls.name}\n"
+                return preview
+            else:
+                # Individual class
+                class_name = parts[-1].replace('.md', '')
+                for cls in self.extractor.classes:
+                    if cls.name.lower().replace(' ', '-') == class_name:
+                        attrs_count = len(cls.attributes) if cls.attributes else 0
+                        ops_count = len(cls.operations) if cls.operations else 0
+                        return f"# {cls.name}\n\n**Package:** {cls.package_name}\n**Type:** {cls.type}\n\n" \
+                               f"Attributes: {attrs_count}\nOperations: {ops_count}\n\n" \
+                               f"{cls.clean_note() or 'No description'}"
+
+        elif parts[0] == 'reports':
+            if parts[1] == 'index.md':
+                return "# Reports\n\nQuality and analysis reports for the model."
+            elif parts[1] == 'quality-report.md':
+                return "# Quality Report\n\nDocumentation coverage and quality metrics for all model elements."
+            elif parts[1] == 'dependencies.md':
+                return "# Dependencies Report\n\nElement relationships and dependency analysis."
 
         return "(Preview not available for this document type)"
 
@@ -728,6 +805,23 @@ class SparxDocGUI:
 
                     finally:
                         self.extractor.close_db()
+
+                # Generate HTML if requested
+                if self.generate_html_var.get():
+                    try:
+                        from sparx_ea_doc.html_generator import HTMLGenerator
+
+                        logger.info("Generating HTML documentation...")
+                        html_gen = HTMLGenerator(output_path)
+                        stats = html_gen.generate_all()
+
+                        logger.info(f"HTML generation complete: {stats['converted']} files converted")
+
+                    except ImportError as e:
+                        logger.error(f"HTML generation requires markdown library: {e}")
+                        logger.error("Install with: pip install markdown")
+                    except Exception as e:
+                        logger.error(f"HTML generation failed: {e}", exc_info=True)
 
                 self.root.after(0, lambda: self.generation_complete(output_path))
 
