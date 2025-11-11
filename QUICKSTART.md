@@ -102,7 +102,23 @@ python test_doc_consistency.py --update
 
 ## Recent Work Completed
 
-### Documentation Change Tracking (Latest)
+### Pixel-Perfect Diagram Rendering (Latest)
+- Completely rewrote diagram rendering to use PIL/Pillow for pixel-perfect layout
+- Diagrams now match Enterprise Architect layout exactly (same dimensions and positions)
+- All diagram types supported:
+  - **Use Case diagrams**: Actors as stick figures, use cases as ellipses
+  - **Class diagrams**: Classes with compartments, interfaces, enumerations
+  - **Component diagrams**: Components with provided/required interfaces
+  - **State Machine diagrams**: States with rounded rectangles, transitions
+- Proper UML notation:
+  - Hollow triangles for generalization/realization
+  - Hollow/filled diamonds for aggregation/composition
+  - Dashed lines for dependencies
+  - Solid/dashed lines based on relationship type
+- Diagrams rendered at exact EA dimensions (e.g., 815 x 1067 pixels)
+- Classes now show which diagrams they appear in
+
+### Documentation Change Tracking
 - Added visual diff tracking for documentation versions
 - Automatic version snapshots in `docs_history/`
 - Diff-annotated documentation in `docs_diff/` with visual markup
@@ -201,39 +217,81 @@ cat test_docs/classes/domain/order.md | head -5
 
 ## Current Branch Structure
 
-- **develop** - Current development branch (all features merged here)
 - **main** - Stable production branch
-- **Feature branches** - Follow pattern `claude/<name>-<session-id>`
+- **develop** - Current development branch (**NEVER commit directly to this branch**)
+- **Feature branches** - Follow pattern `claude/<name>-<session-id>` or `feature/<name>` or `bugfix/<name>`
 
 ## Workflow for Changes
 
-1. Create feature branch from develop: `git checkout -b claude/<feature>-<session-id>`
-2. Make changes
-3. Run regression test: `python test_doc_consistency.py`
-4. If test fails due to **intentional changes**: `python test_doc_consistency.py --update`
-5. If test fails due to **unintentional changes**: Fix the code
-6. Commit changes (include updated golden baseline if applicable)
-7. Push and create PR to develop
-8. Merge to develop
+**⚠️ IMPORTANT: ALL changes must be made on a feature branch. NEVER commit directly to develop or main.**
+
+1. **Start from develop**: Ensure you're on develop and it's up to date
+   ```bash
+   git checkout develop
+   git pull origin develop
+   ```
+
+2. **Create feature branch**: Use descriptive name for your feature or bug fix
+   ```bash
+   git checkout -b claude/<feature-name>-<session-id>
+   # OR
+   git checkout -b feature/<feature-name>
+   # OR
+   git checkout -b bugfix/<bug-name>
+   ```
+
+3. **Make changes**: Implement your feature or fix
+
+4. **Run regression test**: Ensure no unintended breakage
+   ```bash
+   python test_doc_consistency.py
+   ```
+
+5. **Update baseline if needed**: If test fails due to **intentional changes**
+   ```bash
+   python test_doc_consistency.py --update
+   ```
+   If test fails due to **unintentional changes**: Fix the code
+
+6. **Commit changes**: Include updated golden baseline if applicable
+   ```bash
+   git add .
+   git commit -m "Description of changes"
+   ```
+
+7. **Push and create PR**: Push your branch and create PR to develop
+   ```bash
+   git push -u origin <your-branch-name>
+   # Then create PR via GitHub to merge into develop
+   ```
+
+8. **Merge to develop**: After review and approval, merge the PR
+
+9. **Delete feature branch**: Clean up after merge
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git branch -d <your-branch-name>
+   ```
 
 ## Known Limitations
 
-1. Diagram rendering code exists but not yet merged (on separate branch)
-2. Class compartments in diagrams limited to first 5 attributes/operations
-3. Output directory is gitignored (use --output to customize)
+1. Class compartments in diagrams limited to 10 attributes/operations for readability
+2. Output directory is gitignored (use --output to customize)
+3. Some diagram types may not render perfectly (complex nesting, custom shapes)
 
 ## Potential Next Steps
 
-1. **Merge diagram rendering** - From `claude/diagram-renderer-011CUsF8Ao5L71EDHDcdVJhU`
-2. **Add search functionality** - Full-text search across documentation
-3. **Generate navigation sidebar** - For easier browsing
-4. **Support more diagram types** - Sequence, activity, etc.
-5. **Add configuration file** - Customize output format, filters, etc.
-6. **Export to HTML** - Static site generation
-7. **Cross-references** - Link between related elements
-8. **Changelog generation** - Track model changes over time
-9. **Improved attribute/operation formatting** - Visibility symbols (+, -, #, ~)
-10. **Package diagrams** - Show package hierarchy and dependencies
+1. **Add search functionality** - Full-text search across documentation
+2. **Generate navigation sidebar** - For easier browsing
+3. **Support more diagram types** - Sequence, activity, deployment diagrams
+4. **Add configuration file** - Customize output format, filters, etc.
+5. **Cross-references** - Link between related elements in documentation
+6. **Changelog generation** - Track model changes over time
+7. **Improved attribute/operation formatting** - Visibility symbols (+, -, #, ~)
+8. **Package diagrams** - Show package hierarchy and dependencies
+9. **Diagram annotations** - Add labels, stereotypes from EA
+10. **Better connector routing** - Smarter line routing in diagrams
 
 ## For New Sessions
 
@@ -241,16 +299,25 @@ When starting a new session, simply prompt:
 
 ```
 Read QUICKSTART.md and get familiar with the project.
-We're on the develop branch. The latest work added breadcrumb
-navigation to all documentation pages.
+Remember: ALL changes must be on a feature branch - never commit directly to develop.
 ```
+
+**Important reminders for new sessions:**
+- Always start by creating a new feature branch from develop
+- Follow the workflow in this document
+- Run regression tests before committing
+- Create a PR to merge back to develop
 
 ---
 
-**Last Updated**: 2025-11-10
-**Current Branch**: develop (claude/doc-diff-011CUzi3tkyujWHdenUrgdtR)
-**Latest Feature**: Documentation change tracking with visual diff markup
+**Last Updated**: 2025-11-11
+**Current Branch**: develop
+**Latest Feature**: Pixel-perfect diagram rendering using PIL/Pillow
 **Status**: All tests passing ✅
-**New Files**:
-- `sparx_ea_doc/diff_generator.py` - Diff generation and version management
-- `doc_diff_manager.py` - Standalone utility for managing versions
+**Key Features**:
+- Pixel-perfect diagrams matching EA layout exactly
+- All diagram types supported (use cases, classes, components, state machines)
+- Breadcrumb navigation on all pages
+- Documentation change tracking with visual diff markup
+- Class documentation shows associated diagrams
+- Regression testing with golden baseline

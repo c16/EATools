@@ -17,6 +17,7 @@ Usage:
 import argparse
 import subprocess
 import sys
+import shutil
 from pathlib import Path
 
 
@@ -31,7 +32,7 @@ def check_pandoc():
         return False
 
 
-def convert_md_to_pdf(md_file: Path, output_file: Path, engine: str = "pdflatex"):
+def convert_md_to_pdf(md_file: Path, output_file: Path, engine: str = "pdflatex", resource_path: Path = None):
     """
     Convert a single markdown file to PDF using pandoc
 
@@ -39,6 +40,7 @@ def convert_md_to_pdf(md_file: Path, output_file: Path, engine: str = "pdflatex"
         md_file: Path to markdown file
         output_file: Path to output PDF file
         engine: PDF engine to use (pdflatex, xelatex, lualatex, wkhtmltopdf)
+        resource_path: Additional path to search for resources (e.g., images)
     """
     # Extract title from file
     title = md_file.stem.replace('-', ' ').title()
@@ -57,6 +59,10 @@ def convert_md_to_pdf(md_file: Path, output_file: Path, engine: str = "pdflatex"
         '-V', 'urlcolor=blue',
         '--highlight-style=tango',
     ]
+
+    # Add resource path if provided
+    if resource_path:
+        cmd.extend(['--resource-path', str(resource_path)])
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -93,6 +99,17 @@ def convert_directory(docs_dir: Path, output_dir: Path = None, engine: str = "pd
     print(f"Using PDF engine: {engine}")
     print()
 
+    # Copy diagrams directory if output_dir is specified
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        diagrams_src = docs_path / 'diagrams'
+        if diagrams_src.exists() and diagrams_src.is_dir():
+            diagrams_dst = output_dir / 'diagrams'
+            if diagrams_dst.exists():
+                shutil.rmtree(diagrams_dst)
+            shutil.copytree(diagrams_src, diagrams_dst)
+            print(f"✓ Copied diagrams directory\n")
+
     converted = 0
     failed = 0
     failures = []
@@ -110,7 +127,8 @@ def convert_directory(docs_dir: Path, output_dir: Path = None, engine: str = "pd
 
         print(f"Converting: {md_file.relative_to(docs_path)} -> {pdf_file.name}", end='... ')
 
-        success, error = convert_md_to_pdf(md_file, pdf_file, engine)
+        # Use docs_path as resource path so pandoc can find diagrams
+        success, error = convert_md_to_pdf(md_file, pdf_file, engine, docs_path)
 
         if success:
             print("✓")
@@ -174,6 +192,7 @@ def create_combined_pdf(docs_dir: Path, output_file: Path, engine: str = "pdflat
         '-V', 'linkcolor=blue',
         '-V', 'urlcolor=blue',
         '--highlight-style=tango',
+        '--resource-path', str(docs_path),
     ]
 
     try:
