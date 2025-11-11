@@ -4,6 +4,7 @@ Component documentation generator module.
 
 import logging
 from pathlib import Path
+from typing import Dict, List
 from ..utils import generate_breadcrumbs
 from ..template_renderer import TemplateRenderer
 
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ComponentGenerator:
     """Generates component documentation"""
 
-    def __init__(self, extractor, output_dir: Path, template_dir: Path = None):
+    def __init__(self, extractor, output_dir: Path, template_dir: Path = None, diagram_guid_to_png: Dict[str, str] = None):
         """
         Initialize the component generator
 
@@ -21,9 +22,11 @@ class ComponentGenerator:
             extractor: SparxExtractor instance with extracted data
             output_dir: Output directory for documentation
             template_dir: Directory containing templates (optional)
+            diagram_guid_to_png: Mapping of diagram GUIDs to PNG file paths
         """
         self.extractor = extractor
         self.output_dir = output_dir
+        self.diagram_guid_to_png = diagram_guid_to_png or {}
 
         # Set up template renderer
         if template_dir is None:
@@ -31,6 +34,35 @@ class ComponentGenerator:
 
         self.template_renderer = TemplateRenderer(template_dir)
         self.use_template = (template_dir / 'component_template.md').exists()
+
+    def _get_package_diagrams(self, package_names: List[str]) -> List[tuple]:
+        """
+        Get diagrams for given package names
+
+        Args:
+            package_names: List of package names to find diagrams for
+
+        Returns:
+            List of (diagram_guid, diagram_name) tuples
+        """
+        diagrams = []
+        cursor = self.extractor.conn.cursor()
+
+        # Query diagrams by package name
+        placeholders = ','.join('?' * len(package_names))
+        query = f"""
+            SELECT d.ea_guid, d.Name
+            FROM t_diagram d
+            JOIN t_package p ON d.Package_ID = p.Package_ID
+            WHERE p.Name IN ({placeholders})
+            ORDER BY d.Name
+        """
+        cursor.execute(query, package_names)
+
+        for row in cursor.fetchall():
+            diagrams.append((row[0], row[1]))
+
+        return diagrams
 
     def generate(self):
         """Generate component documentation"""
@@ -43,6 +75,29 @@ class ComponentGenerator:
         comp_index_content = "# Components\n\n"
         comp_index_content += generate_breadcrumbs(index_file, self.output_dir, "Components")
         comp_index_content += "This document provides an overview of all components in the system.\n\n"
+
+        # Add package-level diagrams
+        package_diagrams = self._get_package_diagrams(['Components'])
+        if package_diagrams:
+            comp_index_content += "## Diagrams\n\n"
+            for diagram_guid, diagram_name in package_diagrams:
+                if diagram_guid in self.diagram_guid_to_png:
+                    png_path = self.diagram_guid_to_png[diagram_guid]
+                    png_path = f"../{png_path}"
+                    comp_index_content += f"### {diagram_name}\n\n"
+                    comp_index_content += f"![{diagram_name}]({png_path})\n\n"
+
+                    # Show interfaces on diagram for reference
+                    diagram_objects = self.extractor.get_objects_on_diagram(diagram_guid)
+                    interfaces = [obj for obj in diagram_objects if obj[2] in ('ProvidedInterface', 'RequiredInterface', 'Interface', 'Port')]
+
+                    if interfaces:
+                        comp_index_content += "*Interfaces on this diagram:*\n"
+                        for obj_id, obj_name, obj_type in interfaces:
+                            comp_index_content += f"- {obj_name} ({obj_type})\n"
+                        comp_index_content += "\n"
+            comp_index_content += "\n"
+
         comp_index_content += "## Component List\n\n"
 
         # Generate documentation for each component
@@ -87,23 +142,6 @@ class ComponentGenerator:
 
         comp_content += f"**Package:** {comp.package_name}\n\n"
         comp_content += f"**Description:** {comp.clean_note() or 'No description available'}\n\n"
-
-        # Add diagrams
-        diagrams = self.extractor.get_diagrams_for_element(comp.object_id)
-        if diagrams:
-            comp_content += "**Diagrams:**\n"
-            for diagram_guid in diagrams:
-                comp_content += f"- diagram {diagram_guid}\n"
-
-                # Show interfaces and ports on this diagram
-                diagram_objects = self.extractor.get_objects_on_diagram(diagram_guid)
-                interfaces = [obj for obj in diagram_objects if obj[2] in ('ProvidedInterface', 'RequiredInterface', 'Interface', 'Port')]
-
-                if interfaces:
-                    for obj_id, obj_name, obj_type in interfaces:
-                        comp_content += f"- {obj_name} ({obj_type})\n"
-
-            comp_content += "\n"
 
         # Get interfaces and dependencies
         connectors = self.extractor.get_connectors_for_element(comp.object_id)

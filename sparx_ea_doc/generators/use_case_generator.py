@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class UseCaseGenerator:
     """Generates use case documentation"""
 
-    def __init__(self, extractor, output_dir: Path, template_dir: Path = None):
+    def __init__(self, extractor, output_dir: Path, template_dir: Path = None, diagram_guid_to_png: Dict[str, str] = None):
         """
         Initialize the use case generator
 
@@ -23,9 +23,11 @@ class UseCaseGenerator:
             extractor: SparxExtractor instance with extracted data
             output_dir: Output directory for documentation
             template_dir: Directory containing templates (optional)
+            diagram_guid_to_png: Mapping of diagram GUIDs to PNG file paths
         """
         self.extractor = extractor
         self.output_dir = output_dir
+        self.diagram_guid_to_png = diagram_guid_to_png or {}
 
         # Set up template renderer
         if template_dir is None:
@@ -49,6 +51,35 @@ class UseCaseGenerator:
         self._generate_use_case_docs(uc_dir)
 
         logger.info(f"Generated documentation for {len(self.extractor.use_cases)} use cases")
+
+    def _get_package_diagrams(self, package_names: List[str]) -> List[tuple]:
+        """
+        Get diagrams for given package names
+
+        Args:
+            package_names: List of package names to find diagrams for
+
+        Returns:
+            List of (diagram_guid, diagram_name) tuples
+        """
+        diagrams = []
+        cursor = self.extractor.conn.cursor()
+
+        # Query diagrams by package name
+        placeholders = ','.join('?' * len(package_names))
+        query = f"""
+            SELECT d.ea_guid, d.Name
+            FROM t_diagram d
+            JOIN t_package p ON d.Package_ID = p.Package_ID
+            WHERE p.Name IN ({placeholders})
+            ORDER BY d.Name
+        """
+        cursor.execute(query, package_names)
+
+        for row in cursor.fetchall():
+            diagrams.append((row[0], row[1]))
+
+        return diagrams
 
     def _generate_actors_doc(self, uc_dir: Path):
         """Generate actors documentation"""
@@ -75,6 +106,19 @@ class UseCaseGenerator:
         uc_index_content = "# Use Cases\n\n"
         uc_index_content += generate_breadcrumbs(index_file, self.output_dir, "Use Cases")
         uc_index_content += "This document provides an overview of all use cases in the system.\n\n"
+
+        # Add package-level diagrams
+        package_diagrams = self._get_package_diagrams(['UseCases', 'Requirements'])
+        if package_diagrams:
+            uc_index_content += "## Diagrams\n\n"
+            for diagram_guid, diagram_name in package_diagrams:
+                if diagram_guid in self.diagram_guid_to_png:
+                    png_path = self.diagram_guid_to_png[diagram_guid]
+                    png_path = f"../{png_path}"
+                    uc_index_content += f"### {diagram_name}\n\n"
+                    uc_index_content += f"![{diagram_name}]({png_path})\n\n"
+            uc_index_content += "\n"
+
         uc_index_content += "## Use Case List\n\n"
 
         for uc in self.extractor.use_cases:
@@ -225,17 +269,6 @@ class UseCaseGenerator:
             data['requirement_list'] = req_content
         else:
             data['if_requirements'] = False
-
-        # Add diagrams
-        diagrams = self.extractor.get_diagrams_for_element(uc.object_id)
-        if diagrams:
-            data['if_diagrams'] = True
-            diagram_content = ""
-            for diagram_guid in diagrams:
-                diagram_content += f"- diagram {diagram_guid}\n"
-            data['diagram_list'] = diagram_content
-        else:
-            data['if_diagrams'] = False
 
         # Add preconditions and postconditions from constraints
         if uc.object_id in self.extractor.constraints:
@@ -448,14 +481,6 @@ class UseCaseGenerator:
             uc_content += "**Related Use Cases:**\n"
             for assoc in associations:
                 uc_content += f"- {assoc}\n"
-            uc_content += "\n"
-
-        # Add diagrams
-        diagrams = self.extractor.get_diagrams_for_element(uc.object_id)
-        if diagrams:
-            uc_content += "**Diagrams:**\n"
-            for diagram_guid in diagrams:
-                uc_content += f"- diagram {diagram_guid}\n"
             uc_content += "\n"
 
         # Add pre-conditions and post-conditions from constraints table

@@ -24,6 +24,7 @@ from sparx_ea_doc.generators import (
 from sparx_ea_doc.quality_reporter import QualityReporter
 from sparx_ea_doc.template_renderer import TemplateRenderer
 from sparx_ea_doc.diff_generator import DiffGenerator
+from sparx_ea_doc.diagram_renderer import DiagramRenderer
 
 
 # Configure logging
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 class SparxDocGenerator:
     """Main documentation generator orchestrator"""
 
-    def __init__(self, qea_path: str, output_dir: str = "docs", config: Optional[Dict] = None, template_dir: str = None, track_changes: bool = False):
+    def __init__(self, qea_path: str, output_dir: str = "docs", config: Optional[Dict] = None, template_dir: str = None, track_changes: bool = False, render_diagrams: bool = True):
         """
         Initialize the documentation generator
 
@@ -47,11 +48,13 @@ class SparxDocGenerator:
             config: Optional configuration dictionary
             template_dir: Optional directory containing templates
             track_changes: Enable change tracking and diff generation
+            render_diagrams: Enable diagram rendering to PNG
         """
         self.qea_path = Path(qea_path)
         self.output_dir = Path(output_dir)
         self.config = config or {}
         self.track_changes = track_changes
+        self.render_diagrams = render_diagrams
 
         if not self.qea_path.exists():
             raise FileNotFoundError(f"QEA file not found: {self.qea_path}")
@@ -75,6 +78,13 @@ class SparxDocGenerator:
         if self.track_changes:
             self.diff_generator = DiffGenerator(self.output_dir)
             logger.info("Change tracking enabled")
+
+        # Initialize diagram renderer if enabled
+        self.diagram_renderer = None
+        self.diagram_guid_to_png = {}
+        if self.render_diagrams:
+            self.diagram_renderer = DiagramRenderer(self.extractor, self.output_dir)
+            logger.info("Diagram rendering enabled")
 
     def analyze_schema(self) -> Dict:
         """
@@ -138,23 +148,76 @@ class SparxDocGenerator:
         logger.info("Starting model data extraction...")
         self.extractor.extract_all()
 
+    def render_all_diagrams(self):
+        """Render all diagrams to PNG and build GUID-to-PNG mapping"""
+        if not self.render_diagrams or not self.diagram_renderer:
+            logger.info("Diagram rendering disabled, skipping...")
+            return
+
+        logger.info("Rendering diagrams to PNG...")
+
+        # Reopen database connection for diagram rendering
+        self.extractor.connect_db()
+
+        try:
+            # Get all diagrams with their GUIDs
+            cursor = self.extractor.conn.cursor()
+            cursor.execute("""
+                SELECT d.Diagram_ID, d.ea_guid, d.Name
+                FROM t_diagram d
+                ORDER BY d.Name
+            """)
+
+            diagram_count = 0
+            for row in cursor.fetchall():
+                diagram_id = row['Diagram_ID']
+                diagram_guid = row['ea_guid']
+                diagram_name = row['Name']
+
+                try:
+                    # Render the diagram
+                    png_path = self.diagram_renderer.render_diagram(diagram_id, diagram_name)
+
+                    # Store relative path from docs directory
+                    relative_path = png_path.relative_to(self.output_dir)
+
+                    # Map GUID to PNG path
+                    self.diagram_guid_to_png[diagram_guid] = str(relative_path)
+                    diagram_count += 1
+
+                except Exception as e:
+                    logger.warning(f"Failed to render diagram {diagram_name} ({diagram_guid}): {e}")
+                    continue
+
+            logger.info(f"Successfully rendered {diagram_count} diagrams")
+
+        finally:
+            self.extractor.close_db()
+
     def generate_documentation(self):
         """Generate all markdown documentation"""
         logger.info("Starting documentation generation...")
 
-        # Initialize generators
-        uc_generator = UseCaseGenerator(self.extractor, self.output_dir)
-        req_generator = RequirementGenerator(self.extractor, self.output_dir)
-        sm_generator = StateMachineGenerator(self.extractor, self.output_dir)
-        comp_generator = ComponentGenerator(self.extractor, self.output_dir)
-        class_generator = ClassGenerator(self.extractor, self.output_dir)
+        # Reopen database connection for generators to query package diagrams
+        self.extractor.connect_db()
 
-        # Generate all documentation
-        uc_generator.generate()
-        req_generator.generate()
-        sm_generator.generate()
-        comp_generator.generate()
-        class_generator.generate()
+        try:
+            # Initialize generators with diagram mapping
+            uc_generator = UseCaseGenerator(self.extractor, self.output_dir, diagram_guid_to_png=self.diagram_guid_to_png)
+            req_generator = RequirementGenerator(self.extractor, self.output_dir)
+            sm_generator = StateMachineGenerator(self.extractor, self.output_dir, diagram_guid_to_png=self.diagram_guid_to_png)
+            comp_generator = ComponentGenerator(self.extractor, self.output_dir, diagram_guid_to_png=self.diagram_guid_to_png)
+            class_generator = ClassGenerator(self.extractor, self.output_dir, diagram_guid_to_png=self.diagram_guid_to_png)
+
+            # Generate all documentation
+            uc_generator.generate()
+            req_generator.generate()
+            sm_generator.generate()
+            comp_generator.generate()
+            class_generator.generate()
+
+        finally:
+            self.extractor.close_db()
 
         # Generate quality reports
         self.quality_reporter.perform_quality_checks()
@@ -307,6 +370,10 @@ class SparxDocGenerator:
 
             # Full extraction and documentation
             self.extract_model_data()
+
+            # Render diagrams if enabled
+            self.render_all_diagrams()
+
             self.generate_documentation()
 
             # Handle change tracking

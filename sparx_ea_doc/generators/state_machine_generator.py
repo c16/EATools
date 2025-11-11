@@ -4,6 +4,7 @@ State machine documentation generator module.
 
 import logging
 from pathlib import Path
+from typing import Dict, List
 from ..utils import generate_breadcrumbs
 from ..template_renderer import TemplateRenderer
 
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 class StateMachineGenerator:
     """Generates state machine documentation"""
 
-    def __init__(self, extractor, output_dir: Path, template_dir: Path = None):
+    def __init__(self, extractor, output_dir: Path, template_dir: Path = None, diagram_guid_to_png: Dict[str, str] = None):
         """
         Initialize the state machine generator
 
@@ -21,9 +22,11 @@ class StateMachineGenerator:
             extractor: SparxExtractor instance with extracted data
             output_dir: Output directory for documentation
             template_dir: Directory containing templates (optional)
+            diagram_guid_to_png: Mapping of diagram GUIDs to PNG file paths
         """
         self.extractor = extractor
         self.output_dir = output_dir
+        self.diagram_guid_to_png = diagram_guid_to_png or {}
 
         # Set up template renderer
         if template_dir is None:
@@ -31,6 +34,35 @@ class StateMachineGenerator:
 
         self.template_renderer = TemplateRenderer(template_dir)
         self.use_template = (template_dir / 'state_machine_template.md').exists()
+
+    def _get_package_diagrams(self, package_names: List[str]) -> List[tuple]:
+        """
+        Get diagrams for given package names
+
+        Args:
+            package_names: List of package names to find diagrams for
+
+        Returns:
+            List of (diagram_guid, diagram_name) tuples
+        """
+        diagrams = []
+        cursor = self.extractor.conn.cursor()
+
+        # Query diagrams by package name
+        placeholders = ','.join('?' * len(package_names))
+        query = f"""
+            SELECT d.ea_guid, d.Name
+            FROM t_diagram d
+            JOIN t_package p ON d.Package_ID = p.Package_ID
+            WHERE p.Name IN ({placeholders})
+            ORDER BY d.Name
+        """
+        cursor.execute(query, package_names)
+
+        for row in cursor.fetchall():
+            diagrams.append((row[0], row[1]))
+
+        return diagrams
 
     def generate(self):
         """Generate state machine documentation"""
@@ -49,6 +81,18 @@ class StateMachineGenerator:
             with open(index_file, 'w') as f:
                 f.write(sm_index_content)
             return
+
+        # Add package-level diagrams
+        package_diagrams = self._get_package_diagrams(['StateMachines'])
+        if package_diagrams:
+            sm_index_content += "## Diagrams\n\n"
+            for diagram_guid, diagram_name in package_diagrams:
+                if diagram_guid in self.diagram_guid_to_png:
+                    png_path = self.diagram_guid_to_png[diagram_guid]
+                    png_path = f"../{png_path}"
+                    sm_index_content += f"### {diagram_name}\n\n"
+                    sm_index_content += f"![{diagram_name}]({png_path})\n\n"
+            sm_index_content += "\n"
 
         sm_index_content += "## State Machine List\n\n"
 
@@ -86,17 +130,6 @@ class StateMachineGenerator:
             'package_name': sm.package_name,
             'description': sm.clean_note() or 'No description available',
         }
-
-        # Add diagrams
-        diagrams = self.extractor.get_diagrams_for_element(sm.object_id)
-        if diagrams:
-            data['if_diagrams'] = True
-            diagram_content = ""
-            for diagram_guid in diagrams:
-                diagram_content += f"- diagram {diagram_guid}\n"
-            data['diagram_list'] = diagram_content
-        else:
-            data['if_diagrams'] = False
 
         # Get states
         states = self.extractor.states.get(sm.object_id, [])

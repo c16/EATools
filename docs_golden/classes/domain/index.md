@@ -4,6 +4,13 @@
 
 Classes in the Domain package.
 
+## Diagrams
+
+### Domain
+
+![Domain](../../diagrams/domain.png)
+
+
 ## Classes
 
 - [AnonymousData](anonymousdata.md)

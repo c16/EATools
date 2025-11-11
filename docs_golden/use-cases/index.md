@@ -4,6 +4,17 @@
 
 This document provides an overview of all use cases in the system.
 
+## Diagrams
+
+### Requirements
+
+![Requirements](../diagrams/requirements.png)
+
+### UseCases
+
+![UseCases](../diagrams/usecases.png)
+
+
 ## Use Case List
 
 - [Validate Credentials](validate-credentials.md)

@@ -33,10 +33,6 @@
 - [Stock Verification](../requirements/stock-verification.md)
 
 
-**Diagrams:**
-- diagram {1FC8DD1E-BDFA-4b48-8540-49BB480298C0}
-
-
 ## Business Rules
 
 - The customer must have an account
