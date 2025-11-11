@@ -101,6 +101,7 @@ class DocumentTreeBuilder:
             'state-machines': {'type': 'folder', 'children': {}},
             'components': {'type': 'folder', 'children': {}},
             'classes': {'type': 'folder', 'children': {}},
+            'diagrams': {'type': 'folder', 'children': {}},
             'reports': {
                 'type': 'folder',
                 'children': {
@@ -190,6 +191,35 @@ class DocumentTreeBuilder:
 
         # Add reports index
         tree['reports']['children']['index.md'] = {'type': 'file', 'path': 'reports/index.md'}
+
+        # Add diagrams (PNG files)
+        # Query diagrams from database
+        self.extractor.connect_db()
+        try:
+            cursor = self.extractor.conn.cursor()
+            cursor.execute("""
+                SELECT d.ea_guid, d.Name, p.Name as Package_Name
+                FROM t_diagram d
+                LEFT JOIN t_package p ON d.Package_ID = p.Package_ID
+                ORDER BY d.Name
+            """)
+
+            for row in cursor.fetchall():
+                diagram_name = row['Name']
+                package_name = row['Package_Name'] or 'root'
+
+                # Generate filename (same as DiagramRenderer)
+                from sparx_ea_doc.utils import sanitize_filename
+                safe_name = sanitize_filename(diagram_name.lower().replace(' ', '_'))
+                filename = f"{safe_name}.png"
+
+                tree['diagrams']['children'][filename] = {
+                    'type': 'file',
+                    'path': f'diagrams/{filename}',
+                    'title': diagram_name
+                }
+        finally:
+            self.extractor.close_db()
 
         return tree
 
@@ -447,10 +477,23 @@ class SparxDocGUI:
 
         parts = file_path.split('/')
 
+        # Handle diagram images
+        if file_path.endswith('.png'):
+            diagram_name = parts[-1].replace('.png', '').replace('_', ' ').title()
+            return f"📊 Diagram Image: {diagram_name}\n\n" \
+                   f"Type: PNG Image\n" \
+                   f"Location: {file_path}\n\n" \
+                   f"This is a rendered UML diagram from the model.\n" \
+                   f"The diagram will be generated as a PNG image and\n" \
+                   f"embedded in the documentation.\n\n" \
+                   f"Note: Image preview not available in this view.\n" \
+                   f"The diagram will be visible when you open the\n" \
+                   f"generated documentation in a markdown viewer."
+
         if file_path == 'index.md':
             return f"# Sparx Enterprise Architect Model Documentation\n\n" \
                    f"Generated: {self.extractor.use_cases[0].modified_date if self.extractor.use_cases else 'N/A'}\n\n" \
-                   f"## Sections\n- Use Cases\n- Requirements\n- Components\n- Classes\n..."
+                   f"## Sections\n- Use Cases\n- Requirements\n- Components\n- Classes\n- Diagrams\n..."
 
         elif parts[0] == 'use-cases':
             if parts[1] == 'actors.md':
@@ -617,6 +660,7 @@ class SparxDocGUI:
                     RequirementGenerator
                 )
                 from sparx_ea_doc.quality_reporter import QualityReporter
+                from sparx_ea_doc.diagram_renderer import DiagramRenderer
                 from datetime import datetime
 
                 # Use SelectiveFileWriter to filter file writes
@@ -625,12 +669,43 @@ class SparxDocGUI:
                     self.extractor.connect_db()
 
                     try:
-                        # Initialize generators (no diagrams for GUI)
-                        uc_generator = UseCaseGenerator(self.extractor, output_path)
+                        # Render diagrams first
+                        diagram_guid_to_png = {}
+                        diagram_renderer = DiagramRenderer(self.extractor, output_path)
+
+                        # Get all diagrams
+                        cursor = self.extractor.conn.cursor()
+                        cursor.execute("""
+                            SELECT d.Diagram_ID, d.ea_guid, d.Name, p.Name as Package_Name
+                            FROM t_diagram d
+                            LEFT JOIN t_package p ON d.Package_ID = p.Package_ID
+                            ORDER BY d.Name
+                        """)
+
+                        diagram_count = 0
+                        for row in cursor.fetchall():
+                            diagram_id = row['Diagram_ID']
+                            diagram_guid = row['ea_guid']
+                            diagram_name = row['Name']
+                            package_name = row['Package_Name']
+
+                            try:
+                                # Render the diagram
+                                png_path = diagram_renderer.render_diagram(diagram_id, diagram_name, package_name)
+                                relative_path = png_path.relative_to(output_path)
+                                diagram_guid_to_png[diagram_guid] = str(relative_path)
+                                diagram_count += 1
+                            except Exception as e:
+                                logger.warning(f"Failed to render diagram {diagram_name}: {e}")
+
+                        logger.info(f"Rendered {diagram_count} diagrams")
+
+                        # Initialize generators with diagram mappings
+                        uc_generator = UseCaseGenerator(self.extractor, output_path, diagram_guid_to_png=diagram_guid_to_png)
                         req_generator = RequirementGenerator(self.extractor, output_path)
-                        sm_generator = StateMachineGenerator(self.extractor, output_path)
-                        comp_generator = ComponentGenerator(self.extractor, output_path)
-                        class_generator = ClassGenerator(self.extractor, output_path)
+                        sm_generator = StateMachineGenerator(self.extractor, output_path, diagram_guid_to_png=diagram_guid_to_png)
+                        comp_generator = ComponentGenerator(self.extractor, output_path, diagram_guid_to_png=diagram_guid_to_png)
+                        class_generator = ClassGenerator(self.extractor, output_path, diagram_guid_to_png=diagram_guid_to_png)
 
                         # Generate all documentation
                         uc_generator.generate()
