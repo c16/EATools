@@ -109,7 +109,8 @@ class DiagramRenderer:
 
         cursor.execute("""
             SELECT c.Connector_ID, c.Connector_Type, c.Start_Object_ID, c.End_Object_ID,
-                   c.SourceCard, c.DestCard, c.SourceRole, c.DestRole, c.Name, c.Stereotype
+                   c.SourceCard, c.DestCard, c.SourceRole, c.DestRole, c.Name, c.Stereotype,
+                   c.PDATA1, c.PDATA2
             FROM t_diagramlinks dl
             JOIN t_connector c ON dl.ConnectorID = c.Connector_ID
             WHERE dl.DiagramID = ?
@@ -117,6 +118,18 @@ class DiagramRenderer:
 
         connectors = []
         for row in cursor.fetchall():
+            # For StateFlow transitions, PDATA1 is event name, PDATA2 is guard condition
+            transition_label = ''
+            if row['Connector_Type'] == 'StateFlow':
+                event_name = row['PDATA1'] or ''
+                guard = row['PDATA2'] or ''
+                if event_name:
+                    transition_label = event_name
+                    if guard:
+                        transition_label += f" [{guard}]"
+                elif guard:
+                    transition_label = f"[{guard}]"
+
             connectors.append({
                 'connector_id': row['Connector_ID'],
                 'connector_type': row['Connector_Type'],
@@ -126,7 +139,7 @@ class DiagramRenderer:
                 'target_card': row['DestCard'] or '',
                 'source_role': row['SourceRole'] or '',
                 'target_role': row['DestRole'] or '',
-                'name': row['Name'] or '',
+                'name': row['Name'] or transition_label or '',
                 'stereotype': row['Stereotype'] or ''
             })
 
