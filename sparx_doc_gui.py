@@ -5,11 +5,12 @@ Interactive GUI for selective document generation
 """
 
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, scrolledtext
+from tkinter import ttk, filedialog, messagebox, scrolledtext, simpledialog
 from pathlib import Path
 import logging
 import threading
 import tempfile
+from datetime import datetime
 from typing import Dict, List, Set, Optional
 
 from sparx_ea_doc.extractor import SparxExtractor
@@ -490,6 +491,86 @@ class SparxDocGUI:
         for child in self.tree.get_children(item):
             self._deselect_all_recursive(child)
 
+    def ask_create_folder(self, parent_dir: Path) -> Optional[Path]:
+        """
+        Ask user if they want to create a new folder in the selected directory
+
+        Args:
+            parent_dir: The parent directory selected by user
+
+        Returns:
+            Path to use for output (either parent_dir or new subdirectory),
+            or None if cancelled
+        """
+        # Create a custom dialog
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Output Directory")
+        dialog.geometry("500x200")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        result = {'path': None}
+
+        # Message
+        ttk.Label(dialog, text="Selected directory:", font=('Arial', 10, 'bold')).pack(pady=(10, 0))
+        ttk.Label(dialog, text=str(parent_dir), font=('Arial', 9)).pack(pady=(0, 10))
+
+        ttk.Label(dialog, text="Would you like to create a new folder for this documentation?").pack(pady=10)
+
+        # Suggested folder name
+        suggested_name = f"docs_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        frame = ttk.Frame(dialog)
+        frame.pack(pady=10, padx=20, fill=tk.X)
+
+        ttk.Label(frame, text="New folder name:").pack(side=tk.LEFT)
+        folder_entry = ttk.Entry(frame, width=30)
+        folder_entry.insert(0, suggested_name)
+        folder_entry.pack(side=tk.LEFT, padx=5)
+        folder_entry.select_range(0, tk.END)
+        folder_entry.focus()
+
+        # Buttons
+        button_frame = ttk.Frame(dialog)
+        button_frame.pack(pady=20)
+
+        def create_new_folder():
+            folder_name = folder_entry.get().strip()
+            if not folder_name:
+                messagebox.showwarning("Invalid Name", "Please enter a folder name")
+                return
+
+            new_path = parent_dir / folder_name
+            try:
+                new_path.mkdir(parents=True, exist_ok=True)
+                result['path'] = new_path
+                dialog.destroy()
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to create folder:\n{e}")
+
+        def use_selected():
+            result['path'] = parent_dir
+            dialog.destroy()
+
+        def cancel():
+            result['path'] = None
+            dialog.destroy()
+
+        ttk.Button(button_frame, text="Create New Folder", command=create_new_folder).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Use Selected Directory", command=use_selected).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=cancel).pack(side=tk.LEFT, padx=5)
+
+        # Handle Enter key
+        def on_enter(event):
+            create_new_folder()
+
+        folder_entry.bind('<Return>', on_enter)
+
+        # Wait for dialog to close
+        dialog.wait_window()
+
+        return result['path']
+
     def generate_documentation(self):
         """Generate selected documentation"""
         if not self.extractor:
@@ -500,12 +581,15 @@ class SparxDocGUI:
             messagebox.showwarning("Warning", "No documents selected")
             return
 
-        # Ask for output directory
-        output_dir = filedialog.askdirectory(title="Select Output Directory")
-        if not output_dir:
+        # Ask for parent directory
+        parent_dir = filedialog.askdirectory(title="Select Parent Directory for Documentation")
+        if not parent_dir:
             return
 
-        output_path = Path(output_dir)
+        # Ask if user wants to create a new folder
+        output_path = self.ask_create_folder(Path(parent_dir))
+        if not output_path:
+            return
 
         # Run generation in thread
         def generate_thread():
