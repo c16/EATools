@@ -160,11 +160,12 @@ class SparxDocGenerator:
         self.extractor.connect_db()
 
         try:
-            # Get all diagrams with their GUIDs
+            # Get all diagrams with their GUIDs and packages
             cursor = self.extractor.conn.cursor()
             cursor.execute("""
-                SELECT d.Diagram_ID, d.ea_guid, d.Name
+                SELECT d.Diagram_ID, d.ea_guid, d.Name, p.Name as Package_Name
                 FROM t_diagram d
+                LEFT JOIN t_package p ON d.Package_ID = p.Package_ID
                 ORDER BY d.Name
             """)
 
@@ -173,10 +174,11 @@ class SparxDocGenerator:
                 diagram_id = row['Diagram_ID']
                 diagram_guid = row['ea_guid']
                 diagram_name = row['Name']
+                package_name = row['Package_Name']
 
                 try:
-                    # Render the diagram
-                    png_path = self.diagram_renderer.render_diagram(diagram_id, diagram_name)
+                    # Render the diagram with package information
+                    png_path = self.diagram_renderer.render_diagram(diagram_id, diagram_name, package_name)
 
                     # Store relative path from docs directory
                     relative_path = png_path.relative_to(self.output_dir)

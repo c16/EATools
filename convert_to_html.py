@@ -104,6 +104,17 @@ def convert_md_to_html(docs_dir: Path, output_dir: Path = None, css_url: str = "
             failed += 1
             print(f"✗ {rel_path}: {e}")
 
+    # Copy diagrams directory if it exists
+    diagrams_src = docs_path / 'diagrams'
+    if diagrams_src.exists() and diagrams_src.is_dir():
+        if separate_tree:
+            diagrams_dst = output_path / 'diagrams'
+            if diagrams_dst.exists():
+                shutil.rmtree(diagrams_dst)
+            shutil.copytree(diagrams_src, diagrams_dst)
+            print(f"✓ Copied diagrams directory")
+        # If not separate tree, diagrams are already in the right place
+
     print(f"\n{'='*60}")
     print(f"Conversion complete:")
     print(f"  ✓ Converted: {converted}")

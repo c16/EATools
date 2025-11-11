@@ -65,6 +65,33 @@ class ClassGenerator:
 
         return diagrams
 
+    def _get_class_diagrams(self, object_id: int) -> List[tuple]:
+        """
+        Get diagrams that contain a specific class
+
+        Args:
+            object_id: The object ID of the class
+
+        Returns:
+            List of (diagram_guid, diagram_name) tuples
+        """
+        diagrams = []
+        cursor = self.extractor.conn.cursor()
+
+        # Query diagrams where this object appears
+        cursor.execute("""
+            SELECT DISTINCT d.ea_guid, d.Name
+            FROM t_diagram d
+            JOIN t_diagramobjects do ON d.Diagram_ID = do.Diagram_ID
+            WHERE do.Object_ID = ?
+            ORDER BY d.Name
+        """, (object_id,))
+
+        for row in cursor.fetchall():
+            diagrams.append((row[0], row[1]))
+
+        return diagrams
+
     def generate(self):
         """Generate class and module documentation"""
         logger.info("Generating class documentation...")
@@ -171,6 +198,19 @@ class ClassGenerator:
             class_content += f"**{' | '.join(metadata_parts)}**\n\n"
 
         class_content += f"**Description:** {cls.clean_note() or 'No description available'}\n\n"
+
+        # Add diagrams where this class appears
+        class_diagrams = self._get_class_diagrams(cls.object_id)
+        if class_diagrams:
+            class_content += "## Diagrams\n\n"
+            for diagram_guid, diagram_name in class_diagrams:
+                if diagram_guid in self.diagram_guid_to_png:
+                    png_path = self.diagram_guid_to_png[diagram_guid]
+                    # Relative path from classes/package/class.md to diagrams/
+                    png_path = f"../../{png_path}"
+                    class_content += f"### {diagram_name}\n\n"
+                    class_content += f"![{diagram_name}]({png_path})\n\n"
+            class_content += "\n"
 
         # Get inheritance and relationships
         connectors = self.extractor.get_connectors_for_element(cls.object_id)
