@@ -8,6 +8,13 @@
 
 **Description:** No description available
 
+## Diagrams
+
+### Domain
+
+![Domain](../../diagrams/domain.png)
+
+
 ## Relationships
 
 **Associations:**

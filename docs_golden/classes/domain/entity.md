@@ -8,6 +8,13 @@
 
 **Description:** No description available
 
+## Diagrams
+
+### Domain
+
+![Domain](../../diagrams/domain.png)
+
+
 ## Methods
 
 | Name | Parameters | Return Type | Description |
