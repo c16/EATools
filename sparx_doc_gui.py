@@ -402,13 +402,149 @@ class SparxDocGUI:
         """Show preview of a document"""
         self.preview_text.delete('1.0', tk.END)
 
-        # For now, show a placeholder
-        # In a full implementation, we'd generate the content on-the-fly
-        preview = f"Preview of: {file_path}\n\n"
-        preview += "This would show the rendered markdown content.\n"
-        preview += f"File is {'SELECTED' if file_path in self.selected_files else 'NOT SELECTED'} for generation.\n"
+        # Generate actual preview content
+        try:
+            preview = self._generate_preview_content(file_path)
+            if preview:
+                self.preview_text.insert('1.0', preview)
+            else:
+                self.preview_text.insert('1.0', f"Preview of: {file_path}\n\nNo preview available.")
+        except Exception as e:
+            self.preview_text.insert('1.0', f"Preview of: {file_path}\n\nError generating preview:\n{str(e)}")
 
-        self.preview_text.insert('1.0', preview)
+    def _generate_preview_content(self, file_path: str) -> Optional[str]:
+        """Generate preview content for a specific file"""
+        from sparx_ea_doc.generators import (
+            UseCaseGenerator,
+            StateMachineGenerator,
+            ComponentGenerator,
+            ClassGenerator
+        )
+        from tempfile import TemporaryDirectory
+
+        # Determine document type from path
+        parts = file_path.split('/')
+
+        if not self.extractor:
+            return None
+
+        try:
+            if file_path == 'index.md':
+                # Generate main index preview
+                from datetime import datetime
+                preview = "# Sparx Enterprise Architect Model Documentation\n\n"
+                preview += f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                preview += "## Documentation Sections\n\n"
+                if self.extractor.use_cases:
+                    preview += f"### [Use Cases](use-cases/index.md)\n\nContains {len(self.extractor.use_cases)} use cases.\n\n"
+                if self.extractor.state_machines:
+                    preview += f"### [State Machines](state-machines/index.md)\n\nContains {len(self.extractor.state_machines)} state machines.\n\n"
+                if self.extractor.components:
+                    preview += f"### [Components](components/index.md)\n\nContains {len(self.extractor.components)} components.\n\n"
+                if self.extractor.classes:
+                    preview += f"### [Classes](classes/index.md)\n\nContains {len(self.extractor.classes)} classes.\n\n"
+                return preview
+
+            elif parts[0] == 'use-cases':
+                # Use case preview
+                if parts[1] == 'actors.md':
+                    preview = "# Actors\n\nThis document lists all actors in the system.\n\n"
+                    for actor in self.extractor.actors[:5]:  # Show first 5
+                        preview += f"## {actor.name}\n\n"
+                        if actor.stereotype:
+                            preview += f"**Stereotype:** <<{actor.stereotype}>>\n\n"
+                        preview += f"**Description:** {actor.clean_note() or 'No description available'}\n\n"
+                    if len(self.extractor.actors) > 5:
+                        preview += f"\n... and {len(self.extractor.actors) - 5} more actors\n"
+                    return preview
+
+                elif parts[1] == 'index.md':
+                    preview = "# Use Cases\n\nThis document provides an overview of all use cases in the system.\n\n"
+                    preview += "## Use Case List\n\n"
+                    for uc in self.extractor.use_cases:
+                        preview += f"- {uc.name}\n"
+                    return preview
+
+                else:
+                    # Individual use case
+                    uc_name = parts[1].replace('.md', '').replace('-', ' ')
+                    for uc in self.extractor.use_cases:
+                        if uc.name.lower().replace(' ', '-') == parts[1].replace('.md', ''):
+                            with TemporaryDirectory() as temp_dir:
+                                temp_path = Path(temp_dir)
+                                gen = UseCaseGenerator(self.extractor, temp_path)
+                                return gen._generate_single_use_case(uc)
+
+            elif parts[0] == 'state-machines':
+                if parts[1] == 'index.md':
+                    preview = "# State Machines\n\nThis document provides an overview of all state machines in the system.\n\n"
+                    preview += "## State Machine List\n\n"
+                    for sm in self.extractor.state_machines:
+                        preview += f"- {sm.name}\n"
+                    return preview
+                else:
+                    # Individual state machine
+                    for sm in self.extractor.state_machines:
+                        if f"sm-{sm.name.lower().replace(' ', '-')}" == parts[1].replace('.md', ''):
+                            with TemporaryDirectory() as temp_dir:
+                                temp_path = Path(temp_dir)
+                                gen = StateMachineGenerator(self.extractor, temp_path)
+                                return gen._generate_single_state_machine(sm)
+
+            elif parts[0] == 'components':
+                if parts[1] == 'index.md':
+                    preview = "# Components\n\nThis document provides an overview of all components in the system.\n\n"
+                    preview += "## Component List\n\n"
+                    for comp in self.extractor.components:
+                        preview += f"- {comp.name}\n"
+                    return preview
+                elif parts[1] == 'interfaces.md':
+                    preview = "# Component Interfaces\n\n"
+                    for iface in self.extractor.interfaces[:5]:
+                        preview += f"## {iface.name}\n\n"
+                        preview += f"**Description:** {iface.clean_note() or 'No description available'}\n\n"
+                    return preview
+                else:
+                    # Individual component
+                    for comp in self.extractor.components:
+                        if f"comp-{comp.name.lower().replace(' ', '-')}" == parts[1].replace('.md', ''):
+                            with TemporaryDirectory() as temp_dir:
+                                temp_path = Path(temp_dir)
+                                gen = ComponentGenerator(self.extractor, temp_path)
+                                return gen._generate_single_component(comp)
+
+            elif parts[0] == 'classes':
+                if parts[1] == 'index.md':
+                    preview = "# Classes and Modules\n\nThis document provides an overview of all classes in the system.\n\n"
+                    preview += "## Packages\n\n"
+                    packages = set(cls.package_name for cls in self.extractor.classes)
+                    for pkg in sorted(packages):
+                        preview += f"### {pkg}\n\n"
+                        pkg_classes = [cls for cls in self.extractor.classes if cls.package_name == pkg]
+                        for cls in sorted(pkg_classes, key=lambda x: x.name):
+                            preview += f"- {cls.name}\n"
+                        preview += "\n"
+                    return preview
+                elif len(parts) == 3:
+                    # Individual class
+                    for cls in self.extractor.classes:
+                        if cls.name.lower().replace(' ', '-') == parts[2].replace('.md', ''):
+                            with TemporaryDirectory() as temp_dir:
+                                temp_path = Path(temp_dir)
+                                gen = ClassGenerator(self.extractor, temp_path)
+                                return gen._generate_single_class(cls)
+
+            elif parts[0] == 'reports':
+                if parts[1] == 'quality-report.md':
+                    return "# Quality Report\n\n(Quality report preview would be generated here)\n\nThis report shows documentation coverage and quality metrics."
+                elif parts[1] == 'dependencies.md':
+                    return "# Dependencies Report\n\n(Dependencies report preview would be generated here)\n\nThis report shows relationships between components."
+
+        except Exception as e:
+            logger.error(f"Error generating preview for {file_path}: {e}")
+            return f"# Preview Error\n\nCould not generate preview:\n{str(e)}"
+
+        return None
 
     def select_all(self):
         """Select all documents"""
