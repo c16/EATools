@@ -84,7 +84,7 @@ class DiagramRenderer:
 
         cursor.execute("""
             SELECT c.Connector_ID, c.Connector_Type, c.Start_Object_ID, c.End_Object_ID,
-                   c.SourceCard, c.DestCard, c.SourceRole, c.DestRole, c.Name
+                   c.SourceCard, c.DestCard, c.SourceRole, c.DestRole, c.Name, c.Stereotype
             FROM t_diagramlinks dl
             JOIN t_connector c ON dl.ConnectorID = c.Connector_ID
             WHERE dl.DiagramID = ?
@@ -101,7 +101,8 @@ class DiagramRenderer:
                 'target_card': row['DestCard'] or '',
                 'source_role': row['SourceRole'] or '',
                 'target_role': row['DestRole'] or '',
-                'name': row['Name'] or ''
+                'name': row['Name'] or '',
+                'stereotype': row['Stereotype'] or ''
             })
 
         return connectors
@@ -297,6 +298,24 @@ class DiagramRenderer:
             'show_details': row['ShowDetails'] == 1 if row['ShowDetails'] is not None else False,
             'pdata': pdata_dict
         }
+
+    def _get_diagram_type(self, diagram_props: Dict) -> str:
+        """Determine diagram type prefix from properties"""
+        pdata = diagram_props.get('pdata', {})
+
+        # Map common diagram type codes from PDATA
+        if 'type' in pdata:
+            dt = pdata['type'].lower()
+            if 'usecase' in dt or dt == 'uc':
+                return 'uc'
+            elif 'class' in dt or 'logical' in dt:
+                return 'class'
+            elif 'component' in dt or dt == 'cmp':
+                return 'cmp'
+            elif 'state' in dt or dt == 'stm':
+                return 'stm'
+
+        return ""
 
     def _enrich_objects_with_features(self, objects: Dict, diagram_props: Dict) -> None:
         """Add attributes and operations to objects based on diagram properties"""
@@ -524,9 +543,9 @@ class DiagramRenderer:
         if top > bottom:
             top, bottom = bottom, top
 
-        # Draw ellipse
+        # Draw ellipse with very light blue (almost white) to match EA
         draw.ellipse([left, top, right, bottom],
-                    outline='black', fill='lightcyan', width=2)
+                    outline='#5B9BD5', fill='#E7F0FA', width=2)
 
         # Draw name in center
         name = obj_data['name']
@@ -581,13 +600,13 @@ class DiagramRenderer:
 
         obj_type = obj_data['object_type']
 
-        # Determine colors
+        # Determine colors to match EA's palette
         if obj_type == 'Interface':
-            fill_color = (255, 255, 224)  # Light yellow
+            fill_color = (230, 230, 250)  # Lavender - matches EA interface color
         elif obj_type == 'Enumeration':
-            fill_color = (211, 211, 211)  # Light gray
+            fill_color = (232, 245, 233)  # Light green - matches EA enumeration color
         else:
-            fill_color = (173, 216, 230)  # Light blue
+            fill_color = (245, 245, 220)  # Tan/beige - matches EA class color
 
         # Draw outer rectangle
         draw.rectangle([left, top, right, bottom],
@@ -651,9 +670,9 @@ class DiagramRenderer:
         if top > bottom:
             top, bottom = bottom, top
 
-        # Draw main rectangle
+        # Draw main rectangle with light pink/salmon to match EA
         draw.rectangle([left, top, right, bottom],
-                      outline='black', fill=(144, 238, 144), width=2)  # Light green
+                      outline='black', fill=(255, 228, 225), width=2)  # Misty rose - matches EA component color
 
         # Draw component icon (two small rectangles on the left side)
         icon_width = 15
@@ -692,11 +711,11 @@ class DiagramRenderer:
         if top > bottom:
             top, bottom = bottom, top
 
-        # Draw rounded rectangle for state
+        # Draw rounded rectangle for state with tan/beige to match EA
         radius = 10
         draw.rounded_rectangle([left, top, right, bottom],
                               radius=radius,
-                              outline='black', fill=(255, 250, 205), width=2)  # Light yellow
+                              outline='black', fill=(245, 245, 220), width=2)  # Tan/beige - matches EA state color
 
         # Draw name at top
         name = obj_data['name']
@@ -727,9 +746,10 @@ class DiagramRenderer:
             # Determine line style based on connector type
             conn_type = conn['connector_type']
 
-            # Draw line
-            if conn_type in ('Dependency', 'Usage'):
-                # Dashed line
+            # Draw line (check stereotype for use case relationships)
+            stereotype = conn.get('stereotype', '').lower()
+            if conn_type in ('Dependency', 'Usage') or stereotype in ('extend', 'include'):
+                # Dashed line for dependencies and use case extend/include
                 self._draw_dashed_line(draw, src_x, src_y, tgt_x, tgt_y)
             elif conn_type in ('Realisation', 'Realization'):
                 # Dashed line for realization
@@ -756,15 +776,22 @@ class DiagramRenderer:
                 self._draw_arrow_head(draw, src_x, src_y, tgt_x, tgt_y)
             # Association has no arrowhead by default
 
-            # Draw label if present
+            # Draw label with stereotype if present
+            label_parts = []
+            if conn.get('stereotype'):
+                # Add stereotype in guillemets
+                label_parts.append(f"«{conn['stereotype']}»")
             if conn.get('name'):
-                label = conn['name']
+                label_parts.append(conn['name'])
+
+            if label_parts:
+                label = '\n'.join(label_parts) if len(label_parts) > 1 else label_parts[0]
                 mid_x = (src_x + tgt_x) // 2
                 mid_y = (src_y + tgt_y) // 2
                 bbox = draw.textbbox((0, 0), label, font=font)
                 text_width = bbox[2] - bbox[0]
                 # Draw label above the line
-                draw.text((mid_x - text_width // 2, mid_y - 15), label, fill='black', font=font)
+                draw.text((mid_x - text_width // 2, mid_y - 15), label, fill='navy', font=font)
 
     def _draw_dashed_line(self, draw, x1, y1, x2, y2, dash_length=5):
         """Draw a dashed line"""
