@@ -156,6 +156,12 @@ class SparxDocGUI:
         self.tree_structure = None
         self.selected_files = set()
 
+        # Set up template directory (default to templates/ in package)
+        self.template_dir = Path(__file__).parent / 'sparx_ea_doc' / 'templates'
+        if not self.template_dir.exists():
+            logger.warning(f"Template directory not found: {self.template_dir}")
+            self.template_dir = None
+
         self.setup_ui()
 
     def setup_ui(self):
@@ -476,7 +482,7 @@ class SparxDocGUI:
                         if uc.name.lower().replace(' ', '-') == parts[1].replace('.md', ''):
                             with TemporaryDirectory() as temp_dir:
                                 temp_path = Path(temp_dir)
-                                gen = UseCaseGenerator(self.extractor, temp_path)
+                                gen = UseCaseGenerator(self.extractor, temp_path, self.template_dir)
                                 return gen._generate_single_use_case(uc)
 
             elif parts[0] == 'state-machines':
@@ -492,7 +498,7 @@ class SparxDocGUI:
                         if f"sm-{sm.name.lower().replace(' ', '-')}" == parts[1].replace('.md', ''):
                             with TemporaryDirectory() as temp_dir:
                                 temp_path = Path(temp_dir)
-                                gen = StateMachineGenerator(self.extractor, temp_path)
+                                gen = StateMachineGenerator(self.extractor, temp_path, self.template_dir)
                                 return gen._generate_single_state_machine(sm)
 
             elif parts[0] == 'components':
@@ -514,7 +520,7 @@ class SparxDocGUI:
                         if f"comp-{comp.name.lower().replace(' ', '-')}" == parts[1].replace('.md', ''):
                             with TemporaryDirectory() as temp_dir:
                                 temp_path = Path(temp_dir)
-                                gen = ComponentGenerator(self.extractor, temp_path)
+                                gen = ComponentGenerator(self.extractor, temp_path, self.template_dir)
                                 return gen._generate_single_component(comp)
 
             elif parts[0] == 'classes':
@@ -535,7 +541,7 @@ class SparxDocGUI:
                         if cls.name.lower().replace(' ', '-') == parts[2].replace('.md', ''):
                             with TemporaryDirectory() as temp_dir:
                                 temp_path = Path(temp_dir)
-                                gen = ClassGenerator(self.extractor, temp_path)
+                                gen = ClassGenerator(self.extractor, temp_path, self.template_dir)
                                 return gen._generate_single_class(cls)
 
             elif parts[0] == 'reports':
@@ -695,7 +701,7 @@ class SparxDocGUI:
                 self.generate_button.config(state=tk.DISABLED)
 
                 # Generate documentation
-                generator = SelectiveGenerator(self.extractor, output_path, self.selected_files)
+                generator = SelectiveGenerator(self.extractor, output_path, self.selected_files, self.template_dir)
                 generator.generate_all(progress_callback=self.update_progress)
 
                 self.root.after(0, lambda: self.generation_complete(output_path))

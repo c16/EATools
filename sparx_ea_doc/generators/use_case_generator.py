@@ -5,7 +5,7 @@ Use case documentation generator module.
 import logging
 from pathlib import Path
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -13,17 +13,26 @@ logger = logging.getLogger(__name__)
 class UseCaseGenerator:
     """Generates use case documentation"""
 
-    def __init__(self, extractor, output_dir: Path):
+    def __init__(self, extractor, output_dir: Path, template_dir: Optional[Path] = None):
         """
         Initialize the use case generator
 
         Args:
             extractor: SparxExtractor instance with extracted data
             output_dir: Output directory for documentation
+            template_dir: Optional directory containing templates (enables template mode)
         """
         self.extractor = extractor
         self.output_dir = output_dir
+        self.template_dir = template_dir
         self.should_generate = None  # Optional filter function for selective generation
+
+        # Initialize template renderer if template directory provided
+        self.template_renderer = None
+        if template_dir and template_dir.exists():
+            from ..template_renderer import TemplateRenderer
+            self.template_renderer = TemplateRenderer(template_dir)
+            logger.info(f"Template mode enabled using: {template_dir}")
 
     def generate(self):
         """Generate use case documentation"""
@@ -86,6 +95,249 @@ class UseCaseGenerator:
 
     def _generate_single_use_case(self, uc) -> str:
         """Generate documentation for a single use case"""
+        # Use template if available
+        if self.template_renderer:
+            return self._generate_use_case_from_template(uc)
+
+        # Otherwise use direct generation
+        return self._generate_direct_use_case(uc)
+
+    def _format_step_with_uc_references(self, step: str, uc_object_id: int) -> str:
+        """Format a step to use proper UML notation for use case references"""
+        # Replace single angle bracket notation with double angle brackets
+        # The model may have <include>, <extend>, <invoke> etc. which should be <<include>>, <<extend>>, <<invoke>>
+        import re
+
+        # Replace <include> with <<include>>
+        step = re.sub(r'<include>', '<<include>>', step, flags=re.IGNORECASE)
+        # Replace <extend> with <<extend>>
+        step = re.sub(r'<extend>', '<<extend>>', step, flags=re.IGNORECASE)
+        # Replace <invoke> with <<invoke>>
+        step = re.sub(r'<invoke>', '<<invoke>>', step, flags=re.IGNORECASE)
+
+        return step
+
+    def _generate_scenarios_section(self, object_id: int) -> str:
+        """Generate scenarios section for a use case"""
+        content = ""
+        uc_scenarios = self.extractor.scenarios[object_id]
+
+        # Create a GUID-to-scenario mapping for quick lookup
+        guid_to_scenario = {}
+        for scenario in uc_scenarios:
+            if scenario.ea_guid:
+                guid_to_scenario[scenario.ea_guid] = scenario
+
+        # Create a GUID-to-level mapping from extensions in Basic Path
+        guid_to_level = {}
+        for scenario in uc_scenarios:
+            if scenario.scenario_type == 'Basic Path':
+                for ext_step_idx, ext_level, ext_guid in scenario.extensions:
+                    guid_to_level[ext_guid] = ext_level
+
+        # Group scenarios by type
+        scenarios_by_type = defaultdict(list)
+        for scenario in uc_scenarios:
+            scenarios_by_type[scenario.scenario_type].append(scenario)
+
+        # Display scenarios organized by type
+        for scenario_type in ['Basic Path', 'Alternate', 'Exception']:
+            if scenario_type in scenarios_by_type:
+                # Sort scenarios by their step level
+                sorted_scenarios = sorted(
+                    scenarios_by_type[scenario_type],
+                    key=lambda s: guid_to_level.get(s.ea_guid, '0') if s.ea_guid else '0'
+                )
+
+                for scenario in sorted_scenarios:
+                    # For Alternate/Exception, prefix with step level if available
+                    if scenario.scenario_type in ['Alternate', 'Exception'] and scenario.ea_guid in guid_to_level:
+                        level_prefix = guid_to_level[scenario.ea_guid] + " "
+                    else:
+                        level_prefix = ""
+
+                    content += f"### {level_prefix}{scenario.scenario_type}: {scenario.name}\n\n"
+
+                    if scenario.steps:
+                        content += "**Steps:**\n\n"
+                        for idx, step in enumerate(scenario.steps, 1):
+                            formatted_step = self._format_step_with_uc_references(step, object_id)
+                            content += f"{idx}. {formatted_step}\n"
+
+                            # Check if this step has extensions (for Basic Path)
+                            if scenario.scenario_type == 'Basic Path':
+                                for ext_step_idx, ext_level, ext_guid in scenario.extensions:
+                                    if ext_step_idx == idx - 1:  # idx is 1-based, ext_step_idx is 0-based
+                                        # Find the scenario that this extension points to
+                                        if ext_guid in guid_to_scenario:
+                                            ext_scenario = guid_to_scenario[ext_guid]
+                                            flow_type = "Alternate flow" if ext_scenario.scenario_type == "Alternate" else "Exception flow"
+                                            content += f"   {ext_level}. {flow_type}: {ext_scenario.name}\n"
+
+                        content += "\n"
+
+                    if scenario.notes:
+                        content += f"**Notes:** {scenario.notes}\n\n"
+
+        # Display any other scenario types not in the standard list
+        for scenario_type, scenarios in scenarios_by_type.items():
+            if scenario_type not in ['Basic Path', 'Alternate', 'Exception']:
+                # Sort scenarios by their step level
+                sorted_scenarios = sorted(
+                    scenarios,
+                    key=lambda s: guid_to_level.get(s.ea_guid, '0') if s.ea_guid else '0'
+                )
+
+                for scenario in sorted_scenarios:
+                    # Prefix with step level if available
+                    if scenario.ea_guid in guid_to_level:
+                        level_prefix = guid_to_level[scenario.ea_guid] + " "
+                    else:
+                        level_prefix = ""
+
+                    content += f"### {level_prefix}{scenario.scenario_type}: {scenario.name}\n\n"
+
+                    if scenario.steps:
+                        content += "**Steps:**\n\n"
+                        for idx, step in enumerate(scenario.steps, 1):
+                            formatted_step = self._format_step_with_uc_references(step, object_id)
+                            content += f"{idx}. {formatted_step}\n"
+
+                            # Check if this step has extensions
+                            for ext_step_idx, ext_level, ext_guid in scenario.extensions:
+                                if ext_step_idx == idx - 1:  # idx is 1-based, ext_step_idx is 0-based
+                                    # Find the scenario that this extension points to
+                                    if ext_guid in guid_to_scenario:
+                                        ext_scenario = guid_to_scenario[ext_guid]
+                                        flow_type = "Alternate flow" if ext_scenario.scenario_type == "Alternate" else "Exception flow"
+                                        content += f"   {ext_level}. {flow_type}: {ext_scenario.name}\n"
+
+                        content += "\n"
+
+                    if scenario.notes:
+                        content += f"**Notes:** {scenario.notes}\n\n"
+
+        return content
+
+    def _generate_use_case_from_template(self, uc) -> str:
+        """Generate use case documentation using template"""
+        # Load template
+        template_content = self.template_renderer.load_template('use_case_template.md')
+        if not template_content:
+            # Fallback to direct generation
+            logger.warning("Template not found, falling back to direct generation")
+            return self._generate_direct_use_case(uc)
+
+        # Prepare data for template
+        data = self._prepare_use_case_data(uc)
+
+        # Render template
+        return self.template_renderer.render(template_content, data)
+
+    def _prepare_use_case_data(self, uc) -> Dict:
+        """Prepare data dictionary for use case template"""
+        sections = uc.parse_structured_note()
+
+        # Get actors and relationships
+        connectors = self.extractor.get_connectors_for_element(uc.object_id)
+
+        actors_set = set()
+        includes_set = set()
+        extends_set = set()
+        associations_set = set()
+
+        for conn in connectors:
+            if conn.source_id == uc.object_id:
+                target = self.extractor.elements.get(conn.target_id)
+                if target:
+                    if target.object_type == 'Actor':
+                        actors_set.add(target.name)
+                    elif target.object_type == 'UseCase':
+                        if 'include' in conn.connector_type.lower():
+                            includes_set.add(target.name)
+                        elif 'extend' in conn.connector_type.lower():
+                            extends_set.add(target.name)
+                        else:
+                            associations_set.add(target.name)
+            elif conn.target_id == uc.object_id:
+                source = self.extractor.elements.get(conn.source_id)
+                if source:
+                    if source.object_type == 'Actor':
+                        actors_set.add(source.name)
+                    elif source.object_type == 'UseCase':
+                        if 'extend' in conn.connector_type.lower():
+                            extends_set.add(source.name)
+
+        actors_list = sorted(actors_set)
+        includes = sorted(includes_set)
+        extends = sorted(extends_set)
+        associations = sorted(associations_set)
+
+        # Build metadata
+        metadata_parts = []
+        if uc.version:
+            metadata_parts.append(f"Version: {uc.version}")
+        if uc.modified_date:
+            metadata_parts.append(f"Modified: {uc.modified_date}")
+        if uc.guid:
+            metadata_parts.append(f"GUID: {uc.guid}")
+
+        # Get description
+        has_structured_sections = any(key in sections for key in ['Preconditions', 'Postconditions',
+                                                                   'Main Flow', 'Scenarios',
+                                                                   'Alternative Flows', 'Business Rules',
+                                                                   'Exceptions'])
+        description = ""
+        if 'Description' in sections and sections['Description']:
+            description = sections['Description']
+        elif not has_structured_sections and uc.clean_note():
+            description = uc.clean_note()
+        else:
+            description = "No description available"
+
+        # Build scenarios content
+        scenario_content = ""
+        if uc.object_id in self.extractor.scenarios:
+            scenario_content = self._generate_scenarios_section(uc.object_id)
+
+        # Prepare template data
+        data = {
+            'use_case_name': uc.name,
+            'stereotype': uc.stereotype or '',
+            'if_stereotype': bool(uc.stereotype),
+            'package_name': uc.package_name,
+            'metadata_parts': ' | '.join(metadata_parts),
+            'description': description,
+            'if_actors': bool(actors_list),
+            'actors_list': ', '.join(actors_list),
+            'if_includes': bool(includes),
+            'included_use_case': '\n'.join([f"- <<include>> {inc}" for inc in includes]),
+            'if_extends': bool(extends),
+            'extending_use_case': '\n'.join([f"- <<extend>> {ext}" for ext in extends]),
+            'if_related': bool(associations),
+            'related_use_case': '\n'.join([f"- {assoc}" for assoc in associations]),
+            'if_preconditions': 'Preconditions' in sections,
+            'precondition_description': sections.get('Preconditions', ''),
+            'if_postconditions': 'Postconditions' in sections,
+            'postcondition_description': sections.get('Postconditions', ''),
+            'if_main_flow': 'Main Flow' in sections,
+            'main_flow_content': sections.get('Main Flow', ''),
+            'if_alternative_flows': 'Alternative Flows' in sections,
+            'alternative_flows_content': sections.get('Alternative Flows', ''),
+            'if_business_rules': 'Business Rules' in sections,
+            'business_rules_content': sections.get('Business Rules', ''),
+            'if_exceptions': 'Exceptions' in sections,
+            'exceptions_content': sections.get('Exceptions', ''),
+            'if_scenarios': bool(scenario_content),
+            'scenario_content': scenario_content,
+        }
+
+        return data
+
+    def _generate_direct_use_case(self, uc) -> str:
+        """Direct generation method (original logic) used as fallback"""
+        # This is the original _generate_single_use_case logic
+        # Keeping it for backward compatibility
         uc_content = f"# {uc.name}\n\n"
 
         if uc.stereotype:
@@ -233,120 +485,3 @@ class UseCaseGenerator:
             uc_content += self._generate_scenarios_section(uc.object_id)
 
         return uc_content
-
-    def _format_step_with_uc_references(self, step: str, uc_object_id: int) -> str:
-        """Format a step to use proper UML notation for use case references"""
-        # Replace single angle bracket notation with double angle brackets
-        # The model may have <include>, <extend>, <invoke> etc. which should be <<include>>, <<extend>>, <<invoke>>
-        import re
-
-        # Replace <include> with <<include>>
-        step = re.sub(r'<include>', '<<include>>', step, flags=re.IGNORECASE)
-        # Replace <extend> with <<extend>>
-        step = re.sub(r'<extend>', '<<extend>>', step, flags=re.IGNORECASE)
-        # Replace <invoke> with <<invoke>>
-        step = re.sub(r'<invoke>', '<<invoke>>', step, flags=re.IGNORECASE)
-
-        return step
-
-    def _generate_scenarios_section(self, object_id: int) -> str:
-        """Generate scenarios section for a use case"""
-        content = ""
-        uc_scenarios = self.extractor.scenarios[object_id]
-
-        # Create a GUID-to-scenario mapping for quick lookup
-        guid_to_scenario = {}
-        for scenario in uc_scenarios:
-            if scenario.ea_guid:
-                guid_to_scenario[scenario.ea_guid] = scenario
-
-        # Create a GUID-to-level mapping from extensions in Basic Path
-        guid_to_level = {}
-        for scenario in uc_scenarios:
-            if scenario.scenario_type == 'Basic Path':
-                for ext_step_idx, ext_level, ext_guid in scenario.extensions:
-                    guid_to_level[ext_guid] = ext_level
-
-        # Group scenarios by type
-        scenarios_by_type = defaultdict(list)
-        for scenario in uc_scenarios:
-            scenarios_by_type[scenario.scenario_type].append(scenario)
-
-        # Display scenarios organized by type
-        for scenario_type in ['Basic Path', 'Alternate', 'Exception']:
-            if scenario_type in scenarios_by_type:
-                # Sort scenarios by their step level
-                sorted_scenarios = sorted(
-                    scenarios_by_type[scenario_type],
-                    key=lambda s: guid_to_level.get(s.ea_guid, '0') if s.ea_guid else '0'
-                )
-
-                for scenario in sorted_scenarios:
-                    # For Alternate/Exception, prefix with step level if available
-                    if scenario.scenario_type in ['Alternate', 'Exception'] and scenario.ea_guid in guid_to_level:
-                        level_prefix = guid_to_level[scenario.ea_guid] + " "
-                    else:
-                        level_prefix = ""
-
-                    content += f"### {level_prefix}{scenario.scenario_type}: {scenario.name}\n\n"
-
-                    if scenario.steps:
-                        content += "**Steps:**\n\n"
-                        for idx, step in enumerate(scenario.steps, 1):
-                            formatted_step = self._format_step_with_uc_references(step, object_id)
-                            content += f"{idx}. {formatted_step}\n"
-
-                            # Check if this step has extensions (for Basic Path)
-                            if scenario.scenario_type == 'Basic Path':
-                                for ext_step_idx, ext_level, ext_guid in scenario.extensions:
-                                    if ext_step_idx == idx - 1:  # idx is 1-based, ext_step_idx is 0-based
-                                        # Find the scenario that this extension points to
-                                        if ext_guid in guid_to_scenario:
-                                            ext_scenario = guid_to_scenario[ext_guid]
-                                            flow_type = "Alternate flow" if ext_scenario.scenario_type == "Alternate" else "Exception flow"
-                                            content += f"   {ext_level}. {flow_type}: {ext_scenario.name}\n"
-
-                        content += "\n"
-
-                    if scenario.notes:
-                        content += f"**Notes:** {scenario.notes}\n\n"
-
-        # Display any other scenario types not in the standard list
-        for scenario_type, scenarios in scenarios_by_type.items():
-            if scenario_type not in ['Basic Path', 'Alternate', 'Exception']:
-                # Sort scenarios by their step level
-                sorted_scenarios = sorted(
-                    scenarios,
-                    key=lambda s: guid_to_level.get(s.ea_guid, '0') if s.ea_guid else '0'
-                )
-
-                for scenario in sorted_scenarios:
-                    # Prefix with step level if available
-                    if scenario.ea_guid in guid_to_level:
-                        level_prefix = guid_to_level[scenario.ea_guid] + " "
-                    else:
-                        level_prefix = ""
-
-                    content += f"### {level_prefix}{scenario.scenario_type}: {scenario.name}\n\n"
-
-                    if scenario.steps:
-                        content += "**Steps:**\n\n"
-                        for idx, step in enumerate(scenario.steps, 1):
-                            formatted_step = self._format_step_with_uc_references(step, object_id)
-                            content += f"{idx}. {formatted_step}\n"
-
-                            # Check if this step has extensions
-                            for ext_step_idx, ext_level, ext_guid in scenario.extensions:
-                                if ext_step_idx == idx - 1:  # idx is 1-based, ext_step_idx is 0-based
-                                    # Find the scenario that this extension points to
-                                    if ext_guid in guid_to_scenario:
-                                        ext_scenario = guid_to_scenario[ext_guid]
-                                        flow_type = "Alternate flow" if ext_scenario.scenario_type == "Alternate" else "Exception flow"
-                                        content += f"   {ext_level}. {flow_type}: {ext_scenario.name}\n"
-
-                        content += "\n"
-
-                    if scenario.notes:
-                        content += f"**Notes:** {scenario.notes}\n\n"
-
-        return content

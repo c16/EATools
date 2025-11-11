@@ -25,7 +25,7 @@ class SelectiveGenerator:
     Wrapper around generators to support selective file generation
     """
 
-    def __init__(self, extractor: SparxExtractor, output_dir: Path, selected_files: Set[str]):
+    def __init__(self, extractor: SparxExtractor, output_dir: Path, selected_files: Set[str], template_dir: Optional[Path] = None):
         """
         Initialize selective generator
 
@@ -33,10 +33,23 @@ class SelectiveGenerator:
             extractor: SparxExtractor instance with extracted data
             output_dir: Output directory for documentation
             selected_files: Set of file paths to generate (relative paths like 'use-cases/index.md')
+            template_dir: Optional directory containing templates (enables template mode)
         """
         self.extractor = extractor
         self.output_dir = output_dir
         self.selected_files = selected_files
+
+        # Set up template directory
+        if template_dir is None:
+            # Default to templates directory in package
+            self.template_dir = Path(__file__).parent / 'templates'
+        else:
+            self.template_dir = template_dir
+
+        # Only use templates if directory exists
+        if not self.template_dir.exists():
+            logger.warning(f"Template directory not found: {self.template_dir}")
+            self.template_dir = None
 
     def should_generate(self, file_path: str) -> bool:
         """Check if a file should be generated based on selection"""
@@ -50,10 +63,10 @@ class SelectiveGenerator:
             progress_callback: Optional callback function to report progress
         """
         generators = {
-            'use-cases': UseCaseGenerator(self.extractor, self.output_dir),
-            'state-machines': StateMachineGenerator(self.extractor, self.output_dir),
-            'components': ComponentGenerator(self.extractor, self.output_dir),
-            'classes': ClassGenerator(self.extractor, self.output_dir)
+            'use-cases': UseCaseGenerator(self.extractor, self.output_dir, self.template_dir),
+            'state-machines': StateMachineGenerator(self.extractor, self.output_dir, self.template_dir),
+            'components': ComponentGenerator(self.extractor, self.output_dir, self.template_dir),
+            'classes': ClassGenerator(self.extractor, self.output_dir, self.template_dir)
         }
 
         for name, generator in generators.items():

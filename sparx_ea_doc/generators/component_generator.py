@@ -4,6 +4,7 @@ Component documentation generator module.
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -11,17 +12,26 @@ logger = logging.getLogger(__name__)
 class ComponentGenerator:
     """Generates component documentation"""
 
-    def __init__(self, extractor, output_dir: Path):
+    def __init__(self, extractor, output_dir: Path, template_dir: Optional[Path] = None):
         """
         Initialize the component generator
 
         Args:
             extractor: SparxExtractor instance with extracted data
             output_dir: Output directory for documentation
+            template_dir: Optional directory containing templates (enables template mode)
         """
         self.extractor = extractor
         self.output_dir = output_dir
+        self.template_dir = template_dir
         self.should_generate = None  # Optional filter function for selective generation
+
+        # Initialize template renderer if template directory provided
+        self.template_renderer = None
+        if template_dir and template_dir.exists():
+            from ..template_renderer import TemplateRenderer
+            self.template_renderer = TemplateRenderer(template_dir)
+            logger.info(f"Template mode enabled using: {template_dir}")
 
     def generate(self):
         """Generate component documentation"""
