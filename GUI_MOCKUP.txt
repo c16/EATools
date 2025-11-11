@@ -1,0 +1,136 @@
+================================================================================
+                 SPARX EA DOCUMENTATION GENERATOR - GUI
+================================================================================
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│ File                                                                       │
+│   Open .qea File...                                                        │
+│   ────────────────                                                         │
+│   Exit                                                                     │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│ QEA File: test_model.qea                                     [Browse...]   │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────┬───────────────────────────────────────────┐
+│ Documents to Generate          │  Document Preview                         │
+│                                │                                           │
+│ [Select All] [Deselect All]   │                                           │
+│ ┌────────────────────────────┐ │ ┌───────────────────────────────────────┐│
+│ │☑ index.md                  │ │ │Preview of: use-cases/login-use-case.md││
+│ │☑ use-cases/                │ │ │                                       ││
+│ │  ☑ index.md                │ │ │# Login Use Case                       ││
+│ │  ☑ actors.md               │ │ │                                       ││
+│ │  ☑ Login Use Case          │◄──┼─│**Package:** UseCases                  ││
+│ │  ☑ Process Order           │ │ │                                       ││
+│ │  ☑ Reset Password          │ │ │**Version:** 1.0                       ││
+│ │  ☑ Validate Credentials    │ │ │**Modified:** 2025-11-05 20:02:49      ││
+│ │  ☑ Fetch Data              │ │ │                                       ││
+│ │  ☑ Generate Report         │ │ │**Description:** The login use case    ││
+│ │☑ state-machines/           │ │ │shows how the user logs into the       ││
+│ │  ☑ index.md                │ │ │system.                                ││
+│ │  ☑ Order State Machine     │ │ │                                       ││
+│ │  ☑ Shipped                 │ │ │**Actors:** User (primary)             ││
+│ │☑ components/               │ │ │                                       ││
+│ │  ☑ index.md                │ │ │**Related Use Cases:**                 ││
+│ │  ☑ interfaces.md           │ │ │- Reset Password                       ││
+│ │  ☑ BusinessLogic           │ │ │- Validate Credentials                 ││
+│ │  ☑ DataAccess              │ │ │                                       ││
+│ │  ☑ UserInterface           │ │ │## Preconditions                       ││
+│ │☑ classes/                  │ │ │                                       ││
+│ │  ☑ index.md                │ │ │**Email address**                      ││
+│ │  ☑ domain/                 │ │ │                                       ││
+│ │    ☑ Order                 │ │ │The user must have an email address    ││
+│ │    ☑ OrderItem             │ │ │specified by the administrator.        ││
+│ │    ☑ User                  │ │ │                                       ││
+│ │    ☑ CustomerProfile       │ │ │## Postconditions                      ││
+│ │    ☑ Role                  │ │ │                                       ││
+│ │    ☑ Entity                │ │ │**Session Started**                    ││
+│ │    ☑ AnonymousData         │ │ │                                       ││
+│ │☑ reports/                  │ │ │A session is started for the user and  ││
+│ │  ☑ quality-report.md       │ │ │user is redirect to Dashboard screen.  ││
+│ │  ☑ dependencies.md         │ │ │                                       ││
+│ │                            │ │ │### Basic Path: Successful Login       ││
+│ │                            │ │ │                                       ││
+│ │                            │ │ │**Steps:**                             ││
+│ │                            │ │ │                                       ││
+│ │                            │ │ │1. User enter username and password    ││
+│ │                            │ │ │2. System validates credentials        ││
+│ │▲                           │ │ │3. System creates session              ││
+│ │█                           │ │ │4. System shows Dashboard              ││
+│ │█                           │ │ │                                       ││
+│ │█                           │ │ │                                       ││
+│ │█                           │ │ │                                       ││
+│ │█                           │ │ │                                       ││
+│ │▼                           │ │ │▲                                      ││
+│ └────────────────────────────┘ │ │█                                      ││
+│                                │ │█                                      ││
+│                                │ │█                                      ││
+│                                │ │█                                      ││
+│                                │ │▼                                      ││
+│                                │ └───────────────────────────────────────┘│
+└────────────────────────────────┴───────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│ Status: 27 document(s) selected    [████████████████████░░░░]              │
+│                                                   [Generate Selected Docs] │
+└────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                              KEY FEATURES
+================================================================================
+
+LEFT PANEL - Document Tree:
+  • Hierarchical view of all available documents
+  • Checkboxes (☑/☐) for selection
+  • Click individual files to select/deselect
+  • Click folders to select/deselect all children
+  • Scroll to see all documents
+  • Organized by type (use-cases, state-machines, components, classes, reports)
+
+RIGHT PANEL - Preview:
+  • Shows markdown content preview
+  • Updates when you select a file in the tree
+  • Displays file path and selection status
+  • Scrollable for long documents
+
+CONTROLS:
+  • Browse: Opens file dialog to select .qea file
+  • Select All: Checks all documents
+  • Deselect All: Unchecks all documents
+  • Generate Selected Documents: Prompts for output directory, then generates
+
+PROGRESS:
+  • Status bar shows number of selected documents
+  • Progress bar animates during generation
+  • Success/error dialogs appear when complete
+
+================================================================================
+                            INTERACTION EXAMPLES
+================================================================================
+
+EXAMPLE 1: Select only use cases
+  1. Click "Deselect All"
+  2. Click the checkbox next to "☐ use-cases/" (selects all children)
+  3. Click "☐ index.md" at root (for main navigation)
+  4. Click "Generate Selected Documents"
+  Result: Only use case files are generated
+
+EXAMPLE 2: Select specific classes from one package
+  1. Expand "classes/"
+  2. Expand "domain/"
+  3. Click individual class checkboxes (Order, User, etc.)
+  4. Keep "classes/index.md" and "index.md" checked
+  5. Click "Generate Selected Documents"
+  Result: Only selected classes are generated
+
+EXAMPLE 3: Preview before generating
+  1. Click on "Login Use Case" in tree
+  2. Right panel shows the markdown preview
+  3. Review the content
+  4. If satisfied, ensure it's checked
+  5. Continue reviewing other documents
+  6. Generate when ready
+
+================================================================================
