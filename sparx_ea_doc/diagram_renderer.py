@@ -844,8 +844,8 @@ class DiagramRenderer:
                 # Simple arrow
                 self._draw_arrow_head(draw, src_x, src_y, tgt_x, tgt_y)
             elif conn_type in ('StateFlow', 'ControlFlow'):
-                # Filled triangular arrow for state transitions
-                self._draw_triangle_arrow(draw, src_x, src_y, tgt_x, tgt_y, size=10, filled=True)
+                # Filled triangular arrow for state transitions (large and highly visible)
+                self._draw_triangle_arrow(draw, src_x, src_y, tgt_x, tgt_y, size=20, filled=True)
             # Association has no arrowhead by default
 
             # Draw label with stereotype if present
@@ -926,18 +926,18 @@ class DiagramRenderer:
         dy /= distance
 
         # Triangle points
-        angle = math.pi / 7  # Narrower angle for triangle
+        angle = math.pi / 6  # 30 degree angle for wider, more visible arrow
         left_x = x2 - size * (dx * math.cos(angle) + dy * math.sin(angle))
         left_y = y2 - size * (dy * math.cos(angle) - dx * math.sin(angle))
         right_x = x2 - size * (dx * math.cos(angle) - dy * math.sin(angle))
         right_y = y2 - size * (dy * math.cos(angle) + dx * math.sin(angle))
 
-        # Draw triangle
+        # Draw triangle with thicker outline for visibility
         points = [(x2, y2), (left_x, left_y), (right_x, right_y)]
         if filled:
-            draw.polygon(points, outline='black', fill='black')
+            draw.polygon(points, outline='black', fill='black', width=2)
         else:
-            draw.polygon(points, outline='black', fill='white')
+            draw.polygon(points, outline='black', fill='white', width=2)
 
     def _draw_diamond_arrow(self, draw, x1, y1, x2, y2, size=8, filled=False):
         """Draw a diamond arrow head (for aggregation/composition)"""
