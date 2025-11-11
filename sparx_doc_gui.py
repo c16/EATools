@@ -173,6 +173,13 @@ class DocumentTreeBuilder:
             if pkg_dirname not in tree['classes']['children']:
                 tree['classes']['children'][pkg_dirname] = {'type': 'folder', 'children': {}}
 
+            # Add package index.md
+            tree['classes']['children'][pkg_dirname]['children']['index.md'] = {
+                'type': 'file',
+                'path': f'classes/{pkg_dirname}/index.md',
+                'title': f'{pkg_name} Package Index'
+            }
+
             for cls in sorted(classes, key=lambda x: x.name):
                 filename = f"{cls.name.lower().replace(' ', '-')}.md"
                 tree['classes']['children'][pkg_dirname]['children'][filename] = {
@@ -180,6 +187,9 @@ class DocumentTreeBuilder:
                     'path': f'classes/{pkg_dirname}/{filename}',
                     'title': cls.name
                 }
+
+        # Add reports index
+        tree['reports']['children']['index.md'] = {'type': 'file', 'path': 'reports/index.md'}
 
         return tree
 
@@ -598,24 +608,51 @@ class SparxDocGUI:
                 self.progress.start()
                 self.generate_button.config(state=tk.DISABLED)
 
-                # Import here to avoid circular dependencies
-                from sparx_doc_generator import SparxDocGenerator
+                # Import generators
+                from sparx_ea_doc.generators import (
+                    UseCaseGenerator,
+                    StateMachineGenerator,
+                    ComponentGenerator,
+                    ClassGenerator,
+                    RequirementGenerator
+                )
+                from sparx_ea_doc.quality_reporter import QualityReporter
+                from datetime import datetime
 
                 # Use SelectiveFileWriter to filter file writes
                 with SelectiveFileWriter(output_path, self.selected_files):
-                    # Create generator and generate docs
-                    generator = SparxDocGenerator(
-                        str(self.qea_path),
-                        str(output_path),
-                        render_diagrams=False  # Skip diagrams for now
-                    )
+                    # Reopen database connection for generators
+                    self.extractor.connect_db()
 
-                    # Use the existing extractor data
-                    generator.extractor = self.extractor
+                    try:
+                        # Initialize generators (no diagrams for GUI)
+                        uc_generator = UseCaseGenerator(self.extractor, output_path)
+                        req_generator = RequirementGenerator(self.extractor, output_path)
+                        sm_generator = StateMachineGenerator(self.extractor, output_path)
+                        comp_generator = ComponentGenerator(self.extractor, output_path)
+                        class_generator = ClassGenerator(self.extractor, output_path)
 
-                    # Generate documentation (will only write selected files)
-                    generator.generate_documentation()
-                    generator.generate_index()
+                        # Generate all documentation
+                        uc_generator.generate()
+                        req_generator.generate()
+                        sm_generator.generate()
+                        comp_generator.generate()
+                        class_generator.generate()
+
+                        # Generate quality reports
+                        quality_reporter = QualityReporter(self.extractor, output_path, {})
+                        quality_reporter.perform_quality_checks()
+                        quality_reporter.generate_quality_report()
+                        quality_reporter.generate_dependencies_report()
+
+                        # Generate reports index
+                        self._generate_reports_index(output_path, quality_reporter)
+
+                        # Generate main index
+                        self._generate_index(output_path, quality_reporter)
+
+                    finally:
+                        self.extractor.close_db()
 
                 self.root.after(0, lambda: self.generation_complete(output_path))
 
@@ -625,6 +662,92 @@ class SparxDocGUI:
 
         thread = threading.Thread(target=generate_thread, daemon=True)
         thread.start()
+
+    def _generate_reports_index(self, output_dir: Path, quality_reporter):
+        """Generate reports index document"""
+        reports_dir = output_dir / 'reports'
+        reports_dir.mkdir(exist_ok=True)
+
+        index_content = "# Reports\n\n"
+        index_content += "This section contains quality and analysis reports for the model.\n\n"
+
+        index_content += "## Available Reports\n\n"
+        index_content += "- [Quality Report](quality-report.md) - Documentation coverage and quality metrics\n"
+        index_content += "- [Dependencies](dependencies.md) - Element relationships and dependency analysis\n\n"
+
+        index_content += "## Summary\n\n"
+        if quality_reporter.quality_metrics:
+            total_elements = quality_reporter.quality_metrics.get('total_elements', 0)
+            undocumented = len(quality_reporter.quality_metrics.get('undocumented_elements', []))
+            doc_rate = quality_reporter.quality_metrics.get('documentation_rate', 0)
+
+            index_content += f"- **Total Elements:** {total_elements}\n"
+            index_content += f"- **Undocumented Elements:** {undocumented}\n"
+            index_content += f"- **Documentation Rate:** {doc_rate:.1f}%\n\n"
+
+        with open(reports_dir / 'index.md', 'w') as f:
+            f.write(index_content)
+
+    def _generate_index(self, output_dir: Path, quality_reporter):
+        """Generate main index/navigation document"""
+        from datetime import datetime
+
+        index_content = "# Sparx Enterprise Architect Model Documentation\n\n"
+        index_content += f"**Source File:** {self.qea_path.name}\n\n"
+        index_content += f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+
+        index_content += "## Overview\n\n"
+        index_content += "This documentation was automatically generated from the Sparx Enterprise Architect model. "
+        index_content += "Navigate through the sections below to explore different aspects of the system architecture.\n\n"
+
+        # Model Statistics
+        index_content += "## Model Statistics\n\n"
+        index_content += f"- **Total Elements:** {quality_reporter.quality_metrics['total_elements']}\n"
+        index_content += f"- **Total Packages:** {len(self.extractor.packages)}\n"
+        index_content += f"- **Total Relationships:** {len(self.extractor.connectors)}\n\n"
+
+        # Documentation Sections
+        index_content += "## Documentation Sections\n\n"
+
+        if self.extractor.use_cases:
+            index_content += f"### [Use Cases](use-cases/index.md)\n\n"
+            index_content += f"Contains {len(self.extractor.use_cases)} use cases"
+            if self.extractor.actors:
+                index_content += f" and {len(self.extractor.actors)} actors"
+            index_content += ".\n\n"
+
+        if self.extractor.requirements:
+            index_content += f"### [Requirements](requirements/index.md)\n\n"
+            index_content += f"Contains {len(self.extractor.requirements)} requirements.\n\n"
+
+        if self.extractor.state_machines:
+            index_content += f"### [State Machines](state-machines/index.md)\n\n"
+            index_content += f"Contains {len(self.extractor.state_machines)} state machines.\n\n"
+
+        if self.extractor.components:
+            index_content += f"### [Components](components/index.md)\n\n"
+            index_content += f"Contains {len(self.extractor.components)} components"
+            if self.extractor.interfaces:
+                index_content += f" and {len(self.extractor.interfaces)} interfaces"
+            index_content += ".\n\n"
+
+        if self.extractor.classes:
+            index_content += f"### [Classes and Modules](classes/index.md)\n\n"
+            index_content += f"Contains {len(self.extractor.classes)} classes"
+            if self.extractor.interfaces:
+                index_content += f", {len(self.extractor.interfaces)} interfaces"
+            if self.extractor.enumerations:
+                index_content += f", and {len(self.extractor.enumerations)} enumerations"
+            index_content += ".\n\n"
+
+        # Reports
+        index_content += "### [Reports](reports/quality-report.md)\n\n"
+        index_content += "Quality metrics and dependency analysis.\n\n"
+        index_content += f"- [Quality Report](reports/quality-report.md)\n"
+        index_content += f"- [Dependencies](reports/dependencies.md)\n\n"
+
+        with open(output_dir / 'index.md', 'w') as f:
+            f.write(index_content)
 
     def generation_complete(self, output_path):
         """Handle successful generation"""
