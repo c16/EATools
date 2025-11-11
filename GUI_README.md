@@ -2,6 +2,42 @@
 
 A graphical user interface for selective documentation generation from Sparx Enterprise Architect models.
 
+## Installation
+
+### Prerequisites
+
+The GUI requires Python 3.8+ and tkinter (usually included with Python).
+
+### Install Dependencies
+
+```bash
+# Install Python package dependencies
+pip install -r requirements.txt
+
+# Install tkinter if not already available
+# Ubuntu/Debian:
+sudo apt-get install python3-tk
+
+# Fedora:
+sudo dnf install python3-tkinter
+
+# macOS (from python.org):
+# tkinter is included
+
+# Windows:
+# tkinter is included with standard Python
+```
+
+### Quick Install (Development Mode)
+
+```bash
+# Install package in development mode
+pip install -e .
+
+# This makes sparx-doc-gui command available globally
+sparx-doc-gui
+```
+
 ## Overview
 
 The GUI allows you to:

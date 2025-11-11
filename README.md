@@ -8,28 +8,47 @@ A Python utility that extracts and documents UML models from Sparx Enterprise Ar
 - **Rich Relationship Mapping**: Documents inheritance, associations, dependencies, and more
 - **Quality Analysis**: Identifies undocumented elements and quality issues
 - **Markdown Output**: Professional, navigable documentation in markdown format
-- **Dependency Graphs**: Visual dependency analysis using Mermaid diagrams
+- **Pixel-Perfect Diagrams**: Generates UML diagrams matching Enterprise Architect layout exactly
+- **GUI Application**: Interactive graphical interface for selective document generation
+- **Selective Generation**: Choose which documents to generate with checkbox selection
+- **Change Tracking**: Visual diff markup to compare documentation versions
+- **Regression Testing**: Golden baseline system ensures consistent output
 - **Configurable**: Customizable extraction and documentation options via YAML config
 
 ## Requirements
 
-- Python 3.7 or higher
+- Python 3.8 or higher
 - Required packages (see requirements.txt):
   - PyYAML (for configuration file support)
+  - Pillow (for diagram generation)
+  - graphviz (for diagram rendering - requires system graphviz package)
+  - tkinter (for GUI - usually included with Python)
 
 ## Installation
 
-1. Clone or download this repository
-2. Install dependencies:
+### Quick Install
 
 ```bash
+# Install all dependencies
 pip install -r requirements.txt
+
+# For GUI support, install tkinter if not already available:
+# Ubuntu/Debian:
+sudo apt-get install python3-tk
+
+# Fedora:
+sudo dnf install python3-tkinter
 ```
 
-3. Make the script executable (optional, Linux/Mac):
+### Development Install
 
 ```bash
-chmod +x sparx_doc_generator.py
+# Install in development mode (makes commands globally available)
+pip install -e .
+
+# Run from anywhere:
+sparx-doc-gen model.qea
+sparx-doc-gui
 ```
 
 ## Usage
@@ -73,6 +92,24 @@ Enable detailed logging:
 ```bash
 python sparx_doc_generator.py model.qea --verbose
 ```
+
+### GUI Mode (Interactive)
+
+Launch the graphical interface for selective document generation:
+
+```bash
+python sparx_doc_gui.py
+```
+
+**GUI Features:**
+- Browse and select .qea files
+- Preview documents before generating
+- Select specific documents with checkboxes (double-click to toggle)
+- Create new output folders with timestamps
+- Real-time markdown preview
+- See exactly what will be generated
+
+See [GUI_README.md](GUI_README.md) for detailed GUI documentation.
 
 ## Command-Line Options
 

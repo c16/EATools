@@ -1,6 +1,37 @@
 # Requirements for Sparx Enterprise Architect Documentation Generator
 
+# Core Dependencies
+# ==================
+
 # YAML configuration file support
 PyYAML>=5.4.1
 
-# Note: sqlite3 is included in Python standard library (no need to install)
+# Image processing for diagram generation
+Pillow>=9.0.0
+
+# Graphviz wrapper (requires graphviz system package)
+graphviz>=0.20.0
+
+# GUI Dependencies (for sparx_doc_gui.py)
+# ==========================================
+# Note: tkinter is included in Python standard library on most platforms
+# If tkinter is not available, install it using your package manager:
+#   Ubuntu/Debian: sudo apt-get install python3-tk
+#   Fedora: sudo dnf install python3-tkinter
+#   macOS: included with Python from python.org
+#   Windows: included with standard Python installation
+
+# Standard Library (no installation needed)
+# ==========================================
+# Note: The following are built-in to Python and do not need to be installed:
+#   - sqlite3 (database access)
+#   - tkinter (GUI framework)
+#   - threading (for GUI background tasks)
+#   - pathlib (path manipulation)
+#   - tempfile (temporary directory creation)
+#   - logging (application logging)
+#   - datetime (timestamps)
+#   - re (regular expressions)
+#   - html (HTML entity handling)
+#   - xml (XML parsing)
+#   - json (JSON handling)
