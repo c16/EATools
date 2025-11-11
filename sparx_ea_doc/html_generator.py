@@ -316,6 +316,10 @@ class HTMLGenerator:
         # Extract breadcrumb if present
         breadcrumb_html, md_content = self._extract_breadcrumb(md_content)
 
+        # Fix breadcrumb links to point to .html files
+        if breadcrumb_html:
+            breadcrumb_html = self._fix_md_links_to_html(breadcrumb_html)
+
         # Convert markdown to HTML
         html_content = self.md.convert(md_content)
 
