@@ -310,6 +310,12 @@ class SparxDocGUI:
                                          command=self.generate_documentation, state=tk.DISABLED)
         self.generate_button.pack(side=tk.RIGHT)
 
+        # HTML generation checkbox
+        self.generate_html_var = tk.BooleanVar(value=False)
+        self.html_checkbox = ttk.Checkbutton(bottom_frame, text="Generate HTML",
+                                             variable=self.generate_html_var)
+        self.html_checkbox.pack(side=tk.RIGHT, padx=10)
+
         self.status_label = ttk.Label(bottom_frame, text="Open a .qea file to begin", foreground="gray")
         self.status_label.pack(side=tk.LEFT)
 
@@ -728,6 +734,23 @@ class SparxDocGUI:
 
                     finally:
                         self.extractor.close_db()
+
+                # Generate HTML if requested
+                if self.generate_html_var.get():
+                    try:
+                        from sparx_ea_doc.html_generator import HTMLGenerator
+
+                        logger.info("Generating HTML documentation...")
+                        html_gen = HTMLGenerator(output_path)
+                        stats = html_gen.generate_all()
+
+                        logger.info(f"HTML generation complete: {stats['converted']} files converted")
+
+                    except ImportError as e:
+                        logger.error(f"HTML generation requires markdown library: {e}")
+                        logger.error("Install with: pip install markdown")
+                    except Exception as e:
+                        logger.error(f"HTML generation failed: {e}", exc_info=True)
 
                 self.root.after(0, lambda: self.generation_complete(output_path))
 
