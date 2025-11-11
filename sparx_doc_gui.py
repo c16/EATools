@@ -197,6 +197,10 @@ class SparxDocGUI:
         ttk.Button(button_frame, text="Select All", command=self.select_all).pack(side=tk.LEFT, padx=2)
         ttk.Button(button_frame, text="Deselect All", command=self.deselect_all).pack(side=tk.LEFT, padx=2)
 
+        # Instruction label
+        ttk.Label(button_frame, text="(Double-click to toggle | Single-click to preview)",
+                 foreground="gray", font=('Arial', 8)).pack(side=tk.RIGHT, padx=5)
+
         # Tree view with scrollbar
         tree_scroll_frame = ttk.Frame(left_frame)
         tree_scroll_frame.pack(fill=tk.BOTH, expand=True)
@@ -208,7 +212,7 @@ class SparxDocGUI:
         self.tree.pack(fill=tk.BOTH, expand=True)
         tree_scrollbar.config(command=self.tree.yview)
 
-        self.tree.bind('<Button-1>', self.on_tree_click)
+        self.tree.bind('<Double-Button-1>', self.on_tree_double_click)
         self.tree.bind('<<TreeviewSelect>>', self.on_tree_select)
 
         # Right panel - Markdown preview
@@ -337,8 +341,8 @@ class SparxDocGUI:
 
         expand_all()
 
-    def on_tree_click(self, event):
-        """Handle tree item clicks for toggling checkboxes"""
+    def on_tree_double_click(self, event):
+        """Handle tree item double-clicks for toggling checkboxes"""
         region = self.tree.identify_region(event.x, event.y)
         if region == "tree":
             item = self.tree.identify_row(event.y)
@@ -587,6 +591,75 @@ class SparxDocGUI:
             foreground="blue"
         )
 
+    def ask_create_folder(self, suggested_name: str) -> Optional[str]:
+        """
+        Ask user if they want to create a new folder for documentation
+
+        Returns:
+            str: Folder name to create
+            False: Use current directory
+            None: User cancelled
+        """
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Output Folder")
+        dialog.geometry("450x180")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        result = {'value': None}
+
+        # Message
+        ttk.Label(dialog, text="Create a new folder for the documentation?", font=('Arial', 10, 'bold')).pack(pady=10)
+
+        # Folder name frame
+        folder_frame = ttk.Frame(dialog)
+        folder_frame.pack(fill=tk.X, padx=20, pady=10)
+
+        ttk.Label(folder_frame, text="Folder name:").pack(side=tk.LEFT)
+        folder_entry = ttk.Entry(folder_frame, width=30)
+        folder_entry.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
+        folder_entry.insert(0, suggested_name)
+        folder_entry.select_range(0, tk.END)
+
+        # Buttons
+        button_frame = ttk.Frame(dialog)
+        button_frame.pack(pady=10)
+
+        def on_create():
+            folder_name = folder_entry.get().strip()
+            if folder_name:
+                result['value'] = folder_name
+                dialog.destroy()
+            else:
+                messagebox.showwarning("Invalid Folder", "Please enter a folder name.", parent=dialog)
+
+        def on_use_current():
+            result['value'] = False
+            dialog.destroy()
+
+        def on_cancel():
+            result['value'] = None
+            dialog.destroy()
+
+        ttk.Button(button_frame, text="Create New Folder", command=on_create).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Use Selected Directory", command=on_use_current).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=on_cancel).pack(side=tk.LEFT, padx=5)
+
+        # Focus on entry and bind Enter key
+        folder_entry.focus()
+        folder_entry.bind('<Return>', lambda e: on_create())
+
+        # Center dialog
+        dialog.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() - dialog.winfo_width()) // 2
+        y = self.root.winfo_y() + (self.root.winfo_height() - dialog.winfo_height()) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        # Wait for dialog to close
+        dialog.wait_window()
+
+        return result['value']
+
     def generate_documentation(self):
         """Generate selected documentation"""
         if not self.selected_files:
@@ -594,11 +667,25 @@ class SparxDocGUI:
             return
 
         # Ask for output directory
-        output_dir = filedialog.askdirectory(title="Select Output Directory")
-        if not output_dir:
+        base_dir = filedialog.askdirectory(title="Select Base Directory for Documentation")
+        if not base_dir:
             return
 
-        output_path = Path(output_dir)
+        base_path = Path(base_dir)
+
+        # Ask if user wants to create a new folder
+        from datetime import datetime
+        suggested_folder = f"docs_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        result = self.ask_create_folder(suggested_folder)
+
+        if result is None:  # User cancelled
+            return
+        elif result:  # User wants to create new folder
+            output_path = base_path / result
+            output_path.mkdir(parents=True, exist_ok=True)
+        else:  # User wants to use the selected directory directly
+            output_path = base_path
 
         # Run generation in a thread to avoid blocking UI
         def generate_thread():
