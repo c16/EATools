@@ -64,7 +64,7 @@ class DiagramRenderer:
             right = row['RectRight']
             bottom = row['RectBottom']
 
-            objects[row['Object_ID']] = {
+            obj_data = {
                 'name': row['Name'],
                 'object_type': row['Object_Type'],
                 'stereotype': row['Stereotype'] or '',
@@ -76,7 +76,32 @@ class DiagramRenderer:
                 'height': abs(bottom - top)
             }
 
+            # For state objects, fetch entry/do/exit activities
+            if row['Object_Type'] in ('State', 'StateNode'):
+                obj_data['activities'] = self._get_state_activities(row['Object_ID'])
+
+            objects[row['Object_ID']] = obj_data
+
         return objects
+
+    def _get_state_activities(self, object_id: int) -> Dict[str, list]:
+        """Get entry, do, and exit activities for a state"""
+        cursor = self.extractor.conn.cursor()
+
+        cursor.execute("""
+            SELECT Name, Type
+            FROM t_operation
+            WHERE Object_ID = ? AND Type IN ('entry', 'do', 'exit')
+            ORDER BY Type, Name
+        """, (object_id,))
+
+        activities = {'entry': [], 'do': [], 'exit': []}
+        for row in cursor.fetchall():
+            activity_type = row['Type'].lower()
+            if activity_type in activities:
+                activities[activity_type].append(row['Name'])
+
+        return activities
 
     def _get_diagram_connectors(self, diagram_id: int) -> List[Dict]:
         """Get all connectors in a diagram"""
@@ -717,12 +742,44 @@ class DiagramRenderer:
                               radius=radius,
                               outline='black', fill=(245, 245, 220), width=2)  # Tan/beige - matches EA state color
 
-        # Draw name at top
+        # Draw name at top (bold/centered)
         name = obj_data['name']
         bbox = draw.textbbox((0, 0), name, font=font)
         text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
         text_x = (left + right) // 2 - text_width // 2
-        draw.text((text_x, top + 5), name, fill='black', font=font)
+        y_pos = top + 5
+        draw.text((text_x, y_pos), name, fill='black', font=font)
+        y_pos += text_height + 3
+
+        # Draw separator line after name if there are activities
+        activities = obj_data.get('activities', {})
+        has_activities = any(activities.get(act_type) for act_type in ['entry', 'do', 'exit'])
+
+        if has_activities:
+            draw.line([left + 5, y_pos, right - 5, y_pos], fill='black', width=1)
+            y_pos += 5
+
+            # Draw entry activities
+            for activity in activities.get('entry', []):
+                activity_text = f"entry / {activity}"
+                draw.text((left + 5, y_pos), activity_text, fill='black', font=font)
+                bbox = draw.textbbox((0, 0), activity_text, font=font)
+                y_pos += bbox[3] - bbox[1] + 2
+
+            # Draw do activities
+            for activity in activities.get('do', []):
+                activity_text = f"do / {activity}"
+                draw.text((left + 5, y_pos), activity_text, fill='black', font=font)
+                bbox = draw.textbbox((0, 0), activity_text, font=font)
+                y_pos += bbox[3] - bbox[1] + 2
+
+            # Draw exit activities
+            for activity in activities.get('exit', []):
+                activity_text = f"exit / {activity}"
+                draw.text((left + 5, y_pos), activity_text, fill='black', font=font)
+                bbox = draw.textbbox((0, 0), activity_text, font=font)
+                y_pos += bbox[3] - bbox[1] + 2
 
     def _draw_connectors_pil(self, draw, connectors: List[Dict], objects: Dict, font):
         """Draw connectors between objects"""
