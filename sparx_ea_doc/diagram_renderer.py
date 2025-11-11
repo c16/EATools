@@ -818,6 +818,8 @@ class DiagramRenderer:
 
             # Draw line (check stereotype for use case relationships)
             stereotype = conn.get('stereotype', '').lower()
+            line_width = 2 if conn_type == 'StateFlow' else 1  # Thicker lines for state transitions
+
             if conn_type in ('Dependency', 'Usage') or stereotype in ('extend', 'include'):
                 # Dashed line for dependencies and use case extend/include
                 self._draw_dashed_line(draw, src_x, src_y, tgt_x, tgt_y)
@@ -825,8 +827,8 @@ class DiagramRenderer:
                 # Dashed line for realization
                 self._draw_dashed_line(draw, src_x, src_y, tgt_x, tgt_y)
             else:
-                # Solid line for associations, generalizations, etc.
-                draw.line([src_x, src_y, tgt_x, tgt_y], fill='black', width=1)
+                # Solid line for associations, generalizations, state transitions, etc.
+                draw.line([src_x, src_y, tgt_x, tgt_y], fill='black', width=line_width)
 
             # Draw arrowhead at target based on type
             if conn_type in ('Generalization', 'Realisation', 'Realization'):
@@ -842,8 +844,8 @@ class DiagramRenderer:
                 # Simple arrow
                 self._draw_arrow_head(draw, src_x, src_y, tgt_x, tgt_y)
             elif conn_type in ('StateFlow', 'ControlFlow'):
-                # Simple arrow
-                self._draw_arrow_head(draw, src_x, src_y, tgt_x, tgt_y)
+                # Filled triangular arrow for state transitions
+                self._draw_triangle_arrow(draw, src_x, src_y, tgt_x, tgt_y, size=10, filled=True)
             # Association has no arrowhead by default
 
             # Draw label with stereotype if present
