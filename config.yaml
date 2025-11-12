@@ -6,6 +6,10 @@ output:
   include_timestamp: true
   include_author: true
 
+# Diagram settings
+diagrams:
+  ea_exports_dir: "sample_diagrams"  # Directory containing EA-exported diagrams (GUID-timestamp.png)
+
 # Extraction settings
 extraction:
   include_private: false

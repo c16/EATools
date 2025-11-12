@@ -16,18 +16,20 @@ logger = logging.getLogger(__name__)
 class DiagramRenderer:
     """Renders Sparx EA diagrams to PNG using Graphviz"""
 
-    def __init__(self, extractor, output_dir: Path):
+    def __init__(self, extractor, output_dir: Path, ea_diagrams_dir: str = None):
         """
         Initialize the diagram renderer
 
         Args:
             extractor: SparxExtractor instance with database connection
             output_dir: Output directory for rendered diagrams
+            ea_diagrams_dir: Directory containing EA-exported diagrams (optional)
         """
         self.extractor = extractor
         self.output_dir = output_dir
         self.diagrams_dir = output_dir / 'diagrams'
         self.diagrams_dir.mkdir(exist_ok=True)
+        self.ea_diagrams_dir = Path(ea_diagrams_dir) if ea_diagrams_dir else None
 
     def render_diagram(self, diagram_id: int, diagram_name: str, package_name: str = None) -> Path:
         """
@@ -55,7 +57,7 @@ class DiagramRenderer:
 
     def _find_ea_exported_diagram(self, diagram_id: int) -> Path:
         """
-        Find EA-exported diagram in sample_diagrams directory by GUID
+        Find EA-exported diagram by GUID
 
         Args:
             diagram_id: The diagram ID
@@ -63,6 +65,14 @@ class DiagramRenderer:
         Returns:
             Path to EA-exported diagram if found, None otherwise
         """
+        # Check if EA diagrams directory is configured
+        if not self.ea_diagrams_dir:
+            # Fall back to default location for backward compatibility
+            self.ea_diagrams_dir = Path(__file__).parent.parent / 'sample_diagrams'
+
+        if not self.ea_diagrams_dir.exists():
+            return None
+
         # Get diagram GUID
         cursor = self.extractor.conn.cursor()
         cursor.execute("SELECT ea_guid FROM t_diagram WHERE Diagram_ID = ?", (diagram_id,))
@@ -73,14 +83,9 @@ class DiagramRenderer:
 
         guid = row['ea_guid'].strip('{}')  # Remove curly braces
 
-        # Look for file in sample_diagrams directory matching GUID pattern
-        sample_diagrams_dir = Path(__file__).parent.parent / 'sample_diagrams'
-        if not sample_diagrams_dir.exists():
-            return None
-
         # Find files matching GUID-*.png pattern
         pattern = f"{guid}-*.png"
-        matches = list(sample_diagrams_dir.glob(pattern))
+        matches = list(self.ea_diagrams_dir.glob(pattern))
 
         if matches:
             # Return the most recent one (last in alphabetical order by timestamp)
