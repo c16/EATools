@@ -3,6 +3,8 @@ Diagram rendering module for Sparx Enterprise Architect diagrams.
 """
 
 import logging
+import shutil
+import glob
 from pathlib import Path
 from typing import Dict, List, Tuple
 import graphviz
@@ -14,18 +16,20 @@ logger = logging.getLogger(__name__)
 class DiagramRenderer:
     """Renders Sparx EA diagrams to PNG using Graphviz"""
 
-    def __init__(self, extractor, output_dir: Path):
+    def __init__(self, extractor, output_dir: Path, ea_diagrams_dir: str = None):
         """
         Initialize the diagram renderer
 
         Args:
             extractor: SparxExtractor instance with database connection
             output_dir: Output directory for rendered diagrams
+            ea_diagrams_dir: Directory containing EA-exported diagrams (optional)
         """
         self.extractor = extractor
         self.output_dir = output_dir
         self.diagrams_dir = output_dir / 'diagrams'
         self.diagrams_dir.mkdir(exist_ok=True)
+        self.ea_diagrams_dir = Path(ea_diagrams_dir) if ea_diagrams_dir else None
 
     def render_diagram(self, diagram_id: int, diagram_name: str, package_name: str = None) -> Path:
         """
@@ -41,8 +45,74 @@ class DiagramRenderer:
         """
         logger.info(f"Rendering diagram: {diagram_name} (ID: {diagram_id})")
 
+        # Check if EA-exported diagram exists
+        ea_diagram_path = self._find_ea_exported_diagram(diagram_id)
+        if ea_diagram_path:
+            logger.info(f"Using EA-exported diagram: {ea_diagram_path.name}")
+            return self._use_ea_exported_diagram(ea_diagram_path, diagram_name)
+
+        # Otherwise generate diagram
         # Use PIL-based pixel-perfect rendering for all diagrams
         return self._render_diagram_pil(diagram_id, diagram_name)
+
+    def _find_ea_exported_diagram(self, diagram_id: int) -> Path:
+        """
+        Find EA-exported diagram by GUID
+
+        Args:
+            diagram_id: The diagram ID
+
+        Returns:
+            Path to EA-exported diagram if found, None otherwise
+        """
+        # Check if EA diagrams directory is configured
+        if not self.ea_diagrams_dir:
+            # Fall back to default location for backward compatibility
+            self.ea_diagrams_dir = Path(__file__).parent.parent / 'sample_diagrams'
+
+        if not self.ea_diagrams_dir.exists():
+            return None
+
+        # Get diagram GUID
+        cursor = self.extractor.conn.cursor()
+        cursor.execute("SELECT ea_guid FROM t_diagram WHERE Diagram_ID = ?", (diagram_id,))
+        row = cursor.fetchone()
+
+        if not row or not row['ea_guid']:
+            return None
+
+        guid = row['ea_guid'].strip('{}')  # Remove curly braces
+
+        # Find files matching GUID-*.png pattern
+        pattern = f"{guid}-*.png"
+        matches = list(self.ea_diagrams_dir.glob(pattern))
+
+        if matches:
+            # Return the most recent one (last in alphabetical order by timestamp)
+            return sorted(matches)[-1]
+
+        return None
+
+    def _use_ea_exported_diagram(self, source_path: Path, diagram_name: str) -> Path:
+        """
+        Copy EA-exported diagram to output directory
+
+        Args:
+            source_path: Path to EA-exported diagram
+            diagram_name: Name of the diagram
+
+        Returns:
+            Path to copied diagram in output directory
+        """
+        # Create output filename
+        output_filename = diagram_name.lower().replace(' ', '_') + '.png'
+        output_path = self.diagrams_dir / output_filename
+
+        # Copy the EA diagram
+        shutil.copy2(source_path, output_path)
+        logger.info(f"Copied EA diagram to: {output_path}")
+
+        return output_path
 
     def _get_diagram_objects(self, diagram_id: int) -> Dict:
         """Get all objects in a diagram with position information"""
@@ -64,7 +134,7 @@ class DiagramRenderer:
             right = row['RectRight']
             bottom = row['RectBottom']
 
-            objects[row['Object_ID']] = {
+            obj_data = {
                 'name': row['Name'],
                 'object_type': row['Object_Type'],
                 'stereotype': row['Stereotype'] or '',
@@ -76,7 +146,32 @@ class DiagramRenderer:
                 'height': abs(bottom - top)
             }
 
+            # For state objects, fetch entry/do/exit activities
+            if row['Object_Type'] in ('State', 'StateNode'):
+                obj_data['activities'] = self._get_state_activities(row['Object_ID'])
+
+            objects[row['Object_ID']] = obj_data
+
         return objects
+
+    def _get_state_activities(self, object_id: int) -> Dict[str, list]:
+        """Get entry, do, and exit activities for a state"""
+        cursor = self.extractor.conn.cursor()
+
+        cursor.execute("""
+            SELECT Name, Type
+            FROM t_operation
+            WHERE Object_ID = ? AND Type IN ('entry', 'do', 'exit')
+            ORDER BY Type, Name
+        """, (object_id,))
+
+        activities = {'entry': [], 'do': [], 'exit': []}
+        for row in cursor.fetchall():
+            activity_type = row['Type'].lower()
+            if activity_type in activities:
+                activities[activity_type].append(row['Name'])
+
+        return activities
 
     def _get_diagram_connectors(self, diagram_id: int) -> List[Dict]:
         """Get all connectors in a diagram"""
@@ -84,7 +179,8 @@ class DiagramRenderer:
 
         cursor.execute("""
             SELECT c.Connector_ID, c.Connector_Type, c.Start_Object_ID, c.End_Object_ID,
-                   c.SourceCard, c.DestCard, c.SourceRole, c.DestRole, c.Name
+                   c.SourceCard, c.DestCard, c.SourceRole, c.DestRole, c.Name, c.Stereotype,
+                   c.PDATA1, c.PDATA2
             FROM t_diagramlinks dl
             JOIN t_connector c ON dl.ConnectorID = c.Connector_ID
             WHERE dl.DiagramID = ?
@@ -92,6 +188,18 @@ class DiagramRenderer:
 
         connectors = []
         for row in cursor.fetchall():
+            # For StateFlow transitions, PDATA1 is event name, PDATA2 is guard condition
+            transition_label = ''
+            if row['Connector_Type'] == 'StateFlow':
+                event_name = row['PDATA1'] or ''
+                guard = row['PDATA2'] or ''
+                if event_name:
+                    transition_label = event_name
+                    if guard:
+                        transition_label += f" [{guard}]"
+                elif guard:
+                    transition_label = f"[{guard}]"
+
             connectors.append({
                 'connector_id': row['Connector_ID'],
                 'connector_type': row['Connector_Type'],
@@ -101,7 +209,8 @@ class DiagramRenderer:
                 'target_card': row['DestCard'] or '',
                 'source_role': row['SourceRole'] or '',
                 'target_role': row['DestRole'] or '',
-                'name': row['Name'] or ''
+                'name': row['Name'] or transition_label or '',
+                'stereotype': row['Stereotype'] or ''
             })
 
         return connectors
@@ -297,6 +406,24 @@ class DiagramRenderer:
             'show_details': row['ShowDetails'] == 1 if row['ShowDetails'] is not None else False,
             'pdata': pdata_dict
         }
+
+    def _get_diagram_type(self, diagram_props: Dict) -> str:
+        """Determine diagram type prefix from properties"""
+        pdata = diagram_props.get('pdata', {})
+
+        # Map common diagram type codes from PDATA
+        if 'type' in pdata:
+            dt = pdata['type'].lower()
+            if 'usecase' in dt or dt == 'uc':
+                return 'uc'
+            elif 'class' in dt or 'logical' in dt:
+                return 'class'
+            elif 'component' in dt or dt == 'cmp':
+                return 'cmp'
+            elif 'state' in dt or dt == 'stm':
+                return 'stm'
+
+        return ""
 
     def _enrich_objects_with_features(self, objects: Dict, diagram_props: Dict) -> None:
         """Add attributes and operations to objects based on diagram properties"""
@@ -524,9 +651,9 @@ class DiagramRenderer:
         if top > bottom:
             top, bottom = bottom, top
 
-        # Draw ellipse
+        # Draw ellipse with very light blue (almost white) to match EA
         draw.ellipse([left, top, right, bottom],
-                    outline='black', fill='lightcyan', width=2)
+                    outline='#5B9BD5', fill='#E7F0FA', width=2)
 
         # Draw name in center
         name = obj_data['name']
@@ -581,13 +708,13 @@ class DiagramRenderer:
 
         obj_type = obj_data['object_type']
 
-        # Determine colors
+        # Determine colors to match EA's palette
         if obj_type == 'Interface':
-            fill_color = (255, 255, 224)  # Light yellow
+            fill_color = (230, 230, 250)  # Lavender - matches EA interface color
         elif obj_type == 'Enumeration':
-            fill_color = (211, 211, 211)  # Light gray
+            fill_color = (232, 245, 233)  # Light green - matches EA enumeration color
         else:
-            fill_color = (173, 216, 230)  # Light blue
+            fill_color = (245, 245, 220)  # Tan/beige - matches EA class color
 
         # Draw outer rectangle
         draw.rectangle([left, top, right, bottom],
@@ -651,9 +778,9 @@ class DiagramRenderer:
         if top > bottom:
             top, bottom = bottom, top
 
-        # Draw main rectangle
+        # Draw main rectangle with light pink/salmon to match EA
         draw.rectangle([left, top, right, bottom],
-                      outline='black', fill=(144, 238, 144), width=2)  # Light green
+                      outline='black', fill=(255, 228, 225), width=2)  # Misty rose - matches EA component color
 
         # Draw component icon (two small rectangles on the left side)
         icon_width = 15
@@ -692,18 +819,107 @@ class DiagramRenderer:
         if top > bottom:
             top, bottom = bottom, top
 
-        # Draw rounded rectangle for state
+        # Draw rounded rectangle for state with tan/beige to match EA
         radius = 10
         draw.rounded_rectangle([left, top, right, bottom],
                               radius=radius,
-                              outline='black', fill=(255, 250, 205), width=2)  # Light yellow
+                              outline='black', fill=(245, 245, 220), width=2)  # Tan/beige - matches EA state color
 
-        # Draw name at top
+        # Draw name at top (bold/centered)
         name = obj_data['name']
         bbox = draw.textbbox((0, 0), name, font=font)
         text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
         text_x = (left + right) // 2 - text_width // 2
-        draw.text((text_x, top + 5), name, fill='black', font=font)
+        y_pos = top + 5
+        draw.text((text_x, y_pos), name, fill='black', font=font)
+        y_pos += text_height + 3
+
+        # Draw separator line after name if there are activities
+        activities = obj_data.get('activities', {})
+        has_activities = any(activities.get(act_type) for act_type in ['entry', 'do', 'exit'])
+
+        if has_activities:
+            draw.line([left + 5, y_pos, right - 5, y_pos], fill='black', width=1)
+            y_pos += 5
+
+            # Draw entry activities
+            for activity in activities.get('entry', []):
+                activity_text = f"entry / {activity}"
+                draw.text((left + 5, y_pos), activity_text, fill='black', font=font)
+                bbox = draw.textbbox((0, 0), activity_text, font=font)
+                y_pos += bbox[3] - bbox[1] + 2
+
+            # Draw do activities
+            for activity in activities.get('do', []):
+                activity_text = f"do / {activity}"
+                draw.text((left + 5, y_pos), activity_text, fill='black', font=font)
+                bbox = draw.textbbox((0, 0), activity_text, font=font)
+                y_pos += bbox[3] - bbox[1] + 2
+
+            # Draw exit activities
+            for activity in activities.get('exit', []):
+                activity_text = f"exit / {activity}"
+                draw.text((left + 5, y_pos), activity_text, fill='black', font=font)
+                bbox = draw.textbbox((0, 0), activity_text, font=font)
+                y_pos += bbox[3] - bbox[1] + 2
+
+    def _calculate_edge_intersection(self, src_x, src_y, tgt_x, tgt_y, tgt_left, tgt_top, tgt_right, tgt_bottom):
+        """
+        Calculate where a line from source to target center intersects with target rectangle edge
+
+        Returns: (intersection_x, intersection_y)
+        """
+        import math
+
+        # Direction vector
+        dx = tgt_x - src_x
+        dy = tgt_y - src_y
+
+        if dx == 0 and dy == 0:
+            return tgt_x, tgt_y
+
+        # Find intersection with each edge and pick the one that's closest to source
+        intersections = []
+
+        # Top edge
+        if dy != 0:
+            t = (tgt_top - src_y) / dy
+            if t > 0:
+                ix = src_x + t * dx
+                if tgt_left <= ix <= tgt_right:
+                    intersections.append((ix, tgt_top, t))
+
+        # Bottom edge
+        if dy != 0:
+            t = (tgt_bottom - src_y) / dy
+            if t > 0:
+                ix = src_x + t * dx
+                if tgt_left <= ix <= tgt_right:
+                    intersections.append((ix, tgt_bottom, t))
+
+        # Left edge
+        if dx != 0:
+            t = (tgt_left - src_x) / dx
+            if t > 0:
+                iy = src_y + t * dy
+                if tgt_top <= iy <= tgt_bottom:
+                    intersections.append((tgt_left, iy, t))
+
+        # Right edge
+        if dx != 0:
+            t = (tgt_right - src_x) / dx
+            if t > 0:
+                iy = src_y + t * dy
+                if tgt_top <= iy <= tgt_bottom:
+                    intersections.append((tgt_right, iy, t))
+
+        # Return the intersection closest to the source (smallest t)
+        if intersections:
+            intersections.sort(key=lambda x: x[2])
+            return int(intersections[0][0]), int(intersections[0][1])
+
+        return tgt_x, tgt_y
 
     def _draw_connectors_pil(self, draw, connectors: List[Dict], objects: Dict, font):
         """Draw connectors between objects"""
@@ -721,22 +937,31 @@ class DiagramRenderer:
             src_x = (source['left'] + source['right']) // 2
             src_y = -(source['top'] + source['bottom']) // 2  # Flip Y
 
-            tgt_x = (target['left'] + target['right']) // 2
-            tgt_y = -(target['top'] + target['bottom']) // 2  # Flip Y
+            tgt_center_x = (target['left'] + target['right']) // 2
+            tgt_center_y = -(target['top'] + target['bottom']) // 2  # Flip Y
+
+            # Calculate where line intersects with target edge
+            tgt_x, tgt_y = self._calculate_edge_intersection(
+                src_x, src_y, tgt_center_x, tgt_center_y,
+                target['left'], -target['bottom'], target['right'], -target['top']
+            )
 
             # Determine line style based on connector type
             conn_type = conn['connector_type']
 
-            # Draw line
-            if conn_type in ('Dependency', 'Usage'):
-                # Dashed line
+            # Draw line (check stereotype for use case relationships)
+            stereotype = conn.get('stereotype', '').lower()
+            line_width = 3 if conn_type == 'StateFlow' else 1  # Extra thick lines for state transitions
+
+            if conn_type in ('Dependency', 'Usage') or stereotype in ('extend', 'include'):
+                # Dashed line for dependencies and use case extend/include
                 self._draw_dashed_line(draw, src_x, src_y, tgt_x, tgt_y)
             elif conn_type in ('Realisation', 'Realization'):
                 # Dashed line for realization
                 self._draw_dashed_line(draw, src_x, src_y, tgt_x, tgt_y)
             else:
-                # Solid line for associations, generalizations, etc.
-                draw.line([src_x, src_y, tgt_x, tgt_y], fill='black', width=1)
+                # Solid line for associations, generalizations, state transitions, etc.
+                draw.line([src_x, src_y, tgt_x, tgt_y], fill='black', width=line_width)
 
             # Draw arrowhead at target based on type
             if conn_type in ('Generalization', 'Realisation', 'Realization'):
@@ -752,19 +977,26 @@ class DiagramRenderer:
                 # Simple arrow
                 self._draw_arrow_head(draw, src_x, src_y, tgt_x, tgt_y)
             elif conn_type in ('StateFlow', 'ControlFlow'):
-                # Simple arrow
-                self._draw_arrow_head(draw, src_x, src_y, tgt_x, tgt_y)
+                # Filled triangular arrow for state transitions (extra large for visibility)
+                self._draw_triangle_arrow(draw, src_x, src_y, tgt_x, tgt_y, size=30, filled=True)
             # Association has no arrowhead by default
 
-            # Draw label if present
+            # Draw label with stereotype if present
+            label_parts = []
+            if conn.get('stereotype'):
+                # Add stereotype in guillemets
+                label_parts.append(f"«{conn['stereotype']}»")
             if conn.get('name'):
-                label = conn['name']
+                label_parts.append(conn['name'])
+
+            if label_parts:
+                label = '\n'.join(label_parts) if len(label_parts) > 1 else label_parts[0]
                 mid_x = (src_x + tgt_x) // 2
                 mid_y = (src_y + tgt_y) // 2
                 bbox = draw.textbbox((0, 0), label, font=font)
                 text_width = bbox[2] - bbox[0]
                 # Draw label above the line
-                draw.text((mid_x - text_width // 2, mid_y - 15), label, fill='black', font=font)
+                draw.text((mid_x - text_width // 2, mid_y - 15), label, fill='navy', font=font)
 
     def _draw_dashed_line(self, draw, x1, y1, x2, y2, dash_length=5):
         """Draw a dashed line"""
@@ -827,18 +1059,18 @@ class DiagramRenderer:
         dy /= distance
 
         # Triangle points
-        angle = math.pi / 7  # Narrower angle for triangle
+        angle = math.pi / 6  # 30 degree angle for wider, more visible arrow
         left_x = x2 - size * (dx * math.cos(angle) + dy * math.sin(angle))
         left_y = y2 - size * (dy * math.cos(angle) - dx * math.sin(angle))
         right_x = x2 - size * (dx * math.cos(angle) - dy * math.sin(angle))
         right_y = y2 - size * (dy * math.cos(angle) + dx * math.sin(angle))
 
-        # Draw triangle
+        # Draw triangle with extra thick outline for visibility
         points = [(x2, y2), (left_x, left_y), (right_x, right_y)]
         if filled:
-            draw.polygon(points, outline='black', fill='black')
+            draw.polygon(points, outline='black', fill='black', width=3)
         else:
-            draw.polygon(points, outline='black', fill='white')
+            draw.polygon(points, outline='black', fill='white', width=3)
 
     def _draw_diamond_arrow(self, draw, x1, y1, x2, y2, size=8, filled=False):
         """Draw a diamond arrow head (for aggregation/composition)"""

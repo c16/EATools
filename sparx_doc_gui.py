@@ -316,12 +316,30 @@ class SparxDocGUI:
                                              variable=self.generate_html_var)
         self.html_checkbox.pack(side=tk.RIGHT, padx=10)
 
+        # EA Diagrams directory
+        ea_frame = ttk.Frame(bottom_frame)
+        ea_frame.pack(side=tk.RIGHT, padx=5)
+        ttk.Label(ea_frame, text="EA Diagrams:").pack(side=tk.LEFT)
+        self.ea_diagrams_var = tk.StringVar(value="sample_diagrams")
+        ea_entry = ttk.Entry(ea_frame, textvariable=self.ea_diagrams_var, width=20)
+        ea_entry.pack(side=tk.LEFT, padx=2)
+        ttk.Button(ea_frame, text="Browse...", command=self.browse_ea_diagrams, width=10).pack(side=tk.LEFT)
+
         self.status_label = ttk.Label(bottom_frame, text="Open a .qea file to begin", foreground="gray")
         self.status_label.pack(side=tk.LEFT)
 
         # Progress bar
         self.progress = ttk.Progressbar(bottom_frame, mode='indeterminate')
         self.progress.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
+
+    def browse_ea_diagrams(self):
+        """Browse for EA diagrams directory"""
+        directory = filedialog.askdirectory(
+            title="Select EA Diagrams Directory",
+            initialdir=self.ea_diagrams_var.get() if self.ea_diagrams_var.get() else "."
+        )
+        if directory:
+            self.ea_diagrams_var.set(directory)
 
     def open_file(self):
         """Open and load a .qea file"""
@@ -748,7 +766,8 @@ class SparxDocGUI:
                     try:
                         # Render diagrams first
                         diagram_guid_to_png = {}
-                        diagram_renderer = DiagramRenderer(self.extractor, output_path)
+                        ea_diagrams_dir = self.ea_diagrams_var.get() if self.ea_diagrams_var.get() else None
+                        diagram_renderer = DiagramRenderer(self.extractor, output_path, ea_diagrams_dir)
 
                         # Get all diagrams
                         cursor = self.extractor.conn.cursor()

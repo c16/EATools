@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 class SparxDocGenerator:
     """Main documentation generator orchestrator"""
 
-    def __init__(self, qea_path: str, output_dir: str = "docs", config: Optional[Dict] = None, template_dir: str = None, track_changes: bool = False, render_diagrams: bool = True, generate_html: bool = False, html_output_dir: Optional[str] = None):
+    def __init__(self, qea_path: str, output_dir: str = "docs", config: Optional[Dict] = None, template_dir: str = None, track_changes: bool = False, render_diagrams: bool = True, generate_html: bool = False, html_output_dir: Optional[str] = None, ea_diagrams_dir: Optional[str] = None):
         """
         Initialize the documentation generator
 
@@ -52,6 +52,7 @@ class SparxDocGenerator:
             render_diagrams: Enable diagram rendering to PNG
             generate_html: Enable HTML generation from markdown
             html_output_dir: Optional directory for HTML output (default: docs_html)
+            ea_diagrams_dir: Directory containing EA-exported diagrams (optional)
         """
         self.qea_path = Path(qea_path)
         self.output_dir = Path(output_dir)
@@ -60,6 +61,14 @@ class SparxDocGenerator:
         self.render_diagrams = render_diagrams
         self.generate_html = generate_html
         self.html_output_dir = Path(html_output_dir) if html_output_dir else None
+
+        # Get EA diagrams directory from parameter, config, or use default
+        if ea_diagrams_dir:
+            self.ea_diagrams_dir = ea_diagrams_dir
+        elif self.config.get('diagrams', {}).get('ea_exports_dir'):
+            self.ea_diagrams_dir = self.config['diagrams']['ea_exports_dir']
+        else:
+            self.ea_diagrams_dir = None
 
         if not self.qea_path.exists():
             raise FileNotFoundError(f"QEA file not found: {self.qea_path}")
@@ -88,7 +97,7 @@ class SparxDocGenerator:
         self.diagram_renderer = None
         self.diagram_guid_to_png = {}
         if self.render_diagrams:
-            self.diagram_renderer = DiagramRenderer(self.extractor, self.output_dir)
+            self.diagram_renderer = DiagramRenderer(self.extractor, self.output_dir, self.ea_diagrams_dir)
             logger.info("Diagram rendering enabled")
 
     def analyze_schema(self) -> Dict:
@@ -522,6 +531,11 @@ def main():
         help='Output directory for HTML documentation (default: docs_html)'
     )
 
+    parser.add_argument(
+        '--ea-diagrams-dir',
+        help='Directory containing EA-exported diagrams (GUID-timestamp.png format)'
+    )
+
     args = parser.parse_args()
 
     if args.verbose:
@@ -539,7 +553,8 @@ def main():
         config=config,
         track_changes=args.track_changes,
         generate_html=args.html,
-        html_output_dir=args.html_output
+        html_output_dir=args.html_output,
+        ea_diagrams_dir=args.ea_diagrams_dir
     )
 
     generator.run(analyze_schema_only=args.analyze_schema)
