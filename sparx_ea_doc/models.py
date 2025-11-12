@@ -18,6 +18,7 @@ class Element:
     stereotype: str
     package_name: str
     visibility: str = 'public'
+    alias: str = ''
     version: str = ''
     modified_date: str = ''
     guid: str = ''
@@ -145,6 +146,7 @@ class Connector:
     notes: str
     trigger: str = ''
     guard: str = ''
+    stereotype: str = ''
 
 
 @dataclass
@@ -164,3 +166,12 @@ class Constraint:
     name: str
     constraint_type: str  # Pre-condition, Post-condition, etc.
     notes: str = ''
+
+
+@dataclass
+class Requirement(Element):
+    """Requirement element"""
+    priority: str = ''  # High, Medium, Low
+    difficulty: str = ''
+    status: str = ''
+    related_use_cases: List[str] = field(default_factory=list)  # List of use case names

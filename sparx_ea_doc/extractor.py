@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Dict, List, Optional
 from pathlib import Path
 
-from .models import Element, Attribute, Operation, Connector, Scenario, Constraint
+from .models import Element, Attribute, Operation, Connector, Scenario, Constraint, Requirement
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +38,15 @@ class SparxExtractor:
         self.classes: List[Element] = []
         self.interfaces: List[Element] = []
         self.enumerations: List[Element] = []
+        self.requirements: List[Requirement] = []
         self.attributes: Dict[int, List[Attribute]] = defaultdict(list)
         self.operations: Dict[int, List[Operation]] = defaultdict(list)
         self.connectors: List[Connector] = []
         self.scenarios: Dict[int, List[Scenario]] = defaultdict(list)
         self.constraints: Dict[int, List[Constraint]] = defaultdict(list)
         self.packages: Dict[int, str] = {}
+        self.diagrams: Dict[int, List[str]] = defaultdict(list)  # object_id -> list of diagram GUIDs
+        self.diagram_objects: Dict[str, List[tuple]] = defaultdict(list)  # diagram_guid -> list of (object_id, name, type)
 
     def connect_db(self) -> sqlite3.Connection:
         """Establish connection to the SQLite database"""
@@ -236,7 +239,7 @@ class SparxExtractor:
         # Extract classes
         cursor.execute("""
             SELECT o.Object_ID, o.Name, o.Note, o.Stereotype, o.Scope,
-                   o.[Abstract],
+                   o.[Abstract], o.Version, o.ModifiedDate, o.ea_guid,
                    p.Name as Package
             FROM t_object o
             LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
@@ -252,7 +255,10 @@ class SparxExtractor:
                 note=row['Note'] or '',
                 stereotype=row['Stereotype'] or '',
                 package_name=row['Package'] or 'Unknown',
-                visibility=row['Scope'] or 'public'
+                visibility=row['Scope'] or 'public',
+                version=row['Version'] or '',
+                modified_date=row['ModifiedDate'] or '',
+                guid=row['ea_guid'] or ''
             )
             self.classes.append(element)
             self.elements[element.object_id] = element
@@ -384,7 +390,7 @@ class SparxExtractor:
         cursor = self.conn.cursor()
 
         cursor.execute("""
-            SELECT c.Connector_ID, c.Connector_Type,
+            SELECT c.Connector_ID, c.Connector_Type, c.Stereotype,
                    c.Start_Object_ID, c.End_Object_ID,
                    c.SourceCard, c.DestCard,
                    c.SourceRole, c.DestRole,
@@ -411,7 +417,8 @@ class SparxExtractor:
                 target_role=row['DestRole'] or '',
                 notes=row['Notes'] or '',
                 trigger=row['PDATA1'] or '',
-                guard=row['PDATA2'] or ''
+                guard=row['PDATA2'] or '',
+                stereotype=row['Stereotype'] or ''
             )
             self.connectors.append(connector)
 
@@ -501,6 +508,116 @@ class SparxExtractor:
         total_constraints = sum(len(constraints) for constraints in self.constraints.values())
         logger.info(f"Extracted {total_constraints} constraints for {len(self.constraints)} objects")
 
+    def extract_requirements(self):
+        """Extract requirements and their relationships to use cases"""
+        logger.info("Extracting requirements...")
+        cursor = self.conn.cursor()
+
+        # Extract requirement objects
+        # Note: Priority is stored in PDATA2 field, Difficulty in Complexity field
+        cursor.execute("""
+            SELECT o.Object_ID, o.Name, o.Alias, o.Note, o.Stereotype, o.Scope,
+                   o.Version, o.ModifiedDate, o.ea_guid, o.Complexity, o.Status,
+                   o.PDATA2 as Priority,
+                   p.Name as Package
+            FROM t_object o
+            LEFT JOIN t_package p ON o.Package_ID = p.Package_ID
+            WHERE o.Object_Type = 'Requirement'
+            ORDER BY o.Name
+        """)
+
+        requirements_dict = {}
+        for row in cursor.fetchall():
+            requirement = Requirement(
+                object_id=row['Object_ID'],
+                name=row['Name'],
+                object_type='Requirement',
+                note=row['Note'] or '',
+                stereotype=row['Stereotype'] or '',
+                package_name=row['Package'] or 'Unknown',
+                visibility=row['Scope'] or 'public',
+                alias=row['Alias'] or '',
+                version=row['Version'] or '',
+                modified_date=row['ModifiedDate'] or '',
+                guid=row['ea_guid'] or '',
+                priority=row['Priority'] or '',
+                difficulty=row['Complexity'] or '',
+                status=row['Status'] or '',
+                related_use_cases=[]
+            )
+            self.requirements.append(requirement)
+            self.elements[requirement.object_id] = requirement
+            requirements_dict[requirement.object_id] = requirement
+
+        # Extract relationships between requirements and use cases via connectors
+        cursor.execute("""
+            SELECT c.Start_Object_ID, c.End_Object_ID, c.Connector_Type,
+                   src.Name as SourceName, src.Object_Type as SourceType,
+                   dest.Name as DestName, dest.Object_Type as DestType
+            FROM t_connector c
+            JOIN t_object src ON c.Start_Object_ID = src.Object_ID
+            JOIN t_object dest ON c.End_Object_ID = dest.Object_ID
+            WHERE (src.Object_Type = 'Requirement' AND dest.Object_Type = 'UseCase')
+               OR (src.Object_Type = 'UseCase' AND dest.Object_Type = 'Requirement')
+        """)
+
+        for row in cursor.fetchall():
+            source_id = row['Start_Object_ID']
+            target_id = row['End_Object_ID']
+            source_type = row['SourceType']
+            target_type = row['DestType']
+
+            # Determine which is the requirement and which is the use case
+            if source_type == 'Requirement':
+                req_id = source_id
+                uc_name = row['DestName']
+            else:
+                req_id = target_id
+                uc_name = row['SourceName']
+
+            # Add use case to requirement's related list
+            if req_id in requirements_dict:
+                if uc_name not in requirements_dict[req_id].related_use_cases:
+                    requirements_dict[req_id].related_use_cases.append(uc_name)
+
+        logger.info(f"Extracted {len(self.requirements)} requirements")
+
+    def extract_diagrams(self):
+        """Extract diagram-to-object mappings"""
+        logger.info("Extracting diagram relationships...")
+        cursor = self.conn.cursor()
+
+        # Get all diagram-object relationships with object details
+        cursor.execute("""
+            SELECT d.ea_guid, do.Object_ID, o.Name, o.Object_Type
+            FROM t_diagram d
+            JOIN t_diagramobjects do ON d.Diagram_ID = do.Diagram_ID
+            JOIN t_object o ON do.Object_ID = o.Object_ID
+            ORDER BY d.Diagram_ID, do.Object_ID
+        """)
+
+        diagram_count = 0
+        current_diagram = None
+        for row in cursor.fetchall():
+            diagram_guid = row['ea_guid']
+            object_id = row['Object_ID']
+            object_name = row['Name']
+            object_type = row['Object_Type']
+
+            if diagram_guid != current_diagram:
+                diagram_count += 1
+                current_diagram = diagram_guid
+
+            # Add diagram GUID to the object's diagram list
+            if diagram_guid and diagram_guid not in self.diagrams[object_id]:
+                self.diagrams[object_id].append(diagram_guid)
+
+            # Add object to diagram's object list
+            if diagram_guid:
+                self.diagram_objects[diagram_guid].append((object_id, object_name, object_type))
+
+        logger.info(f"Extracted {diagram_count} diagrams")
+
     def extract_all(self):
         """Main extraction orchestrator"""
         logger.info("Starting model data extraction...")
@@ -518,6 +635,8 @@ class SparxExtractor:
             self.extract_connectors()
             self.extract_scenarios()
             self.extract_constraints()
+            self.extract_requirements()
+            self.extract_diagrams()
 
             logger.info(f"Extraction complete. Total elements: {len(self.elements)}")
 
@@ -535,3 +654,11 @@ class SparxExtractor:
                 if connector_type is None or conn.connector_type == connector_type:
                     connectors.append(conn)
         return connectors
+
+    def get_diagrams_for_element(self, element_id: int) -> List[str]:
+        """Get all diagram GUIDs that contain a specific element"""
+        return self.diagrams.get(element_id, [])
+
+    def get_objects_on_diagram(self, diagram_guid: str) -> List[tuple]:
+        """Get all objects (id, name, type) that appear on a specific diagram"""
+        return self.diagram_objects.get(diagram_guid, [])
