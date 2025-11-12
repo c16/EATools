@@ -3,6 +3,8 @@ Diagram rendering module for Sparx Enterprise Architect diagrams.
 """
 
 import logging
+import shutil
+import glob
 from pathlib import Path
 from typing import Dict, List, Tuple
 import graphviz
@@ -41,8 +43,71 @@ class DiagramRenderer:
         """
         logger.info(f"Rendering diagram: {diagram_name} (ID: {diagram_id})")
 
+        # Check if EA-exported diagram exists
+        ea_diagram_path = self._find_ea_exported_diagram(diagram_id)
+        if ea_diagram_path:
+            logger.info(f"Using EA-exported diagram: {ea_diagram_path.name}")
+            return self._use_ea_exported_diagram(ea_diagram_path, diagram_name)
+
+        # Otherwise generate diagram
         # Use PIL-based pixel-perfect rendering for all diagrams
         return self._render_diagram_pil(diagram_id, diagram_name)
+
+    def _find_ea_exported_diagram(self, diagram_id: int) -> Path:
+        """
+        Find EA-exported diagram in sample_diagrams directory by GUID
+
+        Args:
+            diagram_id: The diagram ID
+
+        Returns:
+            Path to EA-exported diagram if found, None otherwise
+        """
+        # Get diagram GUID
+        cursor = self.extractor.conn.cursor()
+        cursor.execute("SELECT ea_guid FROM t_diagram WHERE Diagram_ID = ?", (diagram_id,))
+        row = cursor.fetchone()
+
+        if not row or not row['ea_guid']:
+            return None
+
+        guid = row['ea_guid'].strip('{}')  # Remove curly braces
+
+        # Look for file in sample_diagrams directory matching GUID pattern
+        sample_diagrams_dir = Path(__file__).parent.parent / 'sample_diagrams'
+        if not sample_diagrams_dir.exists():
+            return None
+
+        # Find files matching GUID-*.png pattern
+        pattern = f"{guid}-*.png"
+        matches = list(sample_diagrams_dir.glob(pattern))
+
+        if matches:
+            # Return the most recent one (last in alphabetical order by timestamp)
+            return sorted(matches)[-1]
+
+        return None
+
+    def _use_ea_exported_diagram(self, source_path: Path, diagram_name: str) -> Path:
+        """
+        Copy EA-exported diagram to output directory
+
+        Args:
+            source_path: Path to EA-exported diagram
+            diagram_name: Name of the diagram
+
+        Returns:
+            Path to copied diagram in output directory
+        """
+        # Create output filename
+        output_filename = diagram_name.lower().replace(' ', '_') + '.png'
+        output_path = self.diagrams_dir / output_filename
+
+        # Copy the EA diagram
+        shutil.copy2(source_path, output_path)
+        logger.info(f"Copied EA diagram to: {output_path}")
+
+        return output_path
 
     def _get_diagram_objects(self, diagram_id: int) -> Dict:
         """Get all objects in a diagram with position information"""
