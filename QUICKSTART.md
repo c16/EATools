@@ -7,7 +7,9 @@ This is a Python-based documentation generator for Sparx Enterprise Architect mo
 ## What It Does
 
 - **Extracts and documents** Use Cases, State Machines, Components, and Classes
-- **Generates Markdown documentation** organized by package structure
+- **Generates Markdown and HTML documentation** organized by package structure
+- **Renders pixel-perfect diagrams** matching EA's visual style or uses EA-exported diagrams
+- **Automated diagram extraction** (Windows only) directly from EA using COM automation
 - **Breadcrumb navigation** on every page for easy navigation back through hierarchy
 - **Quality reports** highlighting missing documentation and relationships
 - **Regression testing** to ensure consistent output across code changes
@@ -18,12 +20,16 @@ This is a Python-based documentation generator for Sparx Enterprise Architect mo
 ```
 EATools/
 ├── sparx_doc_generator.py          # Main orchestrator (291 lines)
+├── sparx_doc_gui.py                # GUI application with preview capability
+├── ea_diagram_extractor.py         # Windows COM automation for EA diagram extraction
 ├── doc_diff_manager.py             # Version history and diff management utility
 ├── sparx_ea_doc/                   # Modular package structure
 │   ├── models.py                   # Data models (Element, UseCase, etc.)
 │   ├── extractor.py                # Database extraction logic (580 lines)
 │   ├── utils.py                    # Utilities (breadcrumb generation)
 │   ├── diff_generator.py           # Diff tracking and visual markup generator
+│   ├── html_generator.py           # HTML documentation generation
+│   ├── diagram_renderer.py         # Pixel-perfect diagram rendering with PIL
 │   ├── generators/                 # Documentation generators
 │   │   ├── use_case_generator.py   # Use case documentation
 │   │   ├── state_machine_generator.py
@@ -32,7 +38,9 @@ EATools/
 │   └── quality_reporter.py         # Quality checks and reports
 ├── test_model.qea                  # Test Enterprise Architect model
 ├── test_doc_consistency.py         # Regression testing script
+├── config.yaml                     # Configuration file (optional)
 ├── docs_golden/                    # Golden baseline (29 reference files)
+├── sample_diagrams/                # EA-exported diagrams (GUID-timestamp.png format)
 ├── docs_history/                   # Version snapshots (gitignored)
 └── docs_diff/                      # Diff-annotated documentation (gitignored)
 ```
@@ -51,7 +59,58 @@ This generates documentation in `docs/` directory:
 - `docs/components/` - Component documentation
 - `docs/classes/` - Class documentation (organized by package)
 - `docs/reports/` - Quality and dependency reports
+- `docs/diagrams/` - Rendered PNG diagrams
 - `docs/index.md` - Main index with breadcrumb navigation
+
+### HTML Documentation Generation
+
+Generate HTML documentation alongside markdown:
+
+```bash
+python sparx_doc_generator.py test_model.qea --html
+```
+
+With custom output directory:
+
+```bash
+python sparx_doc_generator.py test_model.qea --html --html-output my_docs_html
+```
+
+### Automated Diagram Extraction (Windows Only)
+
+Extract all diagrams directly from Enterprise Architect using COM automation:
+
+```bash
+python ea_diagram_extractor.py test_model.qea
+```
+
+With custom output directory:
+
+```bash
+python ea_diagram_extractor.py test_model.qea -o exported_diagrams
+```
+
+**Requirements:**
+- Windows OS
+- Enterprise Architect installed
+- pywin32 package: `pip install pywin32`
+
+This utility connects to EA directly and exports all diagrams in the correct `{GUID}-{timestamp}.png` format.
+
+**Using EA-exported diagrams in documentation:**
+
+```bash
+python sparx_doc_generator.py test_model.qea --ea-diagrams-dir exported_diagrams
+```
+
+Or configure in `config.yaml`:
+
+```yaml
+diagrams:
+  ea_exports_dir: "exported_diagrams"
+```
+
+The generator will use EA-exported diagrams when available (pixel-perfect accuracy) and fall back to rendering for any missing diagrams.
 
 ### Documentation Change Tracking
 
@@ -102,19 +161,39 @@ python test_doc_consistency.py --update
 
 ## Recent Work Completed
 
-### Pixel-Perfect Diagram Rendering (Latest)
+### EA Diagram Extraction & Integration (Latest)
+- Added Windows COM automation utility (`ea_diagram_extractor.py`) for extracting diagrams directly from EA
+- Automatic diagram export in `{GUID}-{timestamp}.png` format
+- Configurable EA diagrams directory via YAML, CLI (`--ea-diagrams-dir`), and GUI
+- Generator uses EA-exported diagrams when available (pixel-perfect accuracy)
+- Falls back to PIL rendering for missing diagrams
+- Supports configuration hierarchy: CLI arg > YAML config > default
+
+### HTML Documentation Generation
+- Native Python HTML generation using markdown library (no pandoc dependency)
+- Professional styling with embedded CSS
+- Breadcrumb navigation converted to HTML links
+- CLI options: `--html` and `--html-output`
+- GUI checkbox for HTML generation
+- Parallel markdown and HTML output
+
+### Pixel-Perfect Diagram Rendering
 - Completely rewrote diagram rendering to use PIL/Pillow for pixel-perfect layout
 - Diagrams now match Enterprise Architect layout exactly (same dimensions and positions)
 - All diagram types supported:
   - **Use Case diagrams**: Actors as stick figures, use cases as ellipses
   - **Class diagrams**: Classes with compartments, interfaces, enumerations
   - **Component diagrams**: Components with provided/required interfaces
-  - **State Machine diagrams**: States with rounded rectangles, transitions
+  - **State Machine diagrams**: States with rounded rectangles, transitions with arrows
 - Proper UML notation:
   - Hollow triangles for generalization/realization
   - Hollow/filled diamonds for aggregation/composition
   - Dashed lines for dependencies
   - Solid/dashed lines based on relationship type
+  - Stereotypes displayed on relationships (e.g., «extend», «include»)
+  - State activities (entry/do/exit) shown inside states
+  - Transition labels with events and guard conditions
+- Improved arrow rendering with edge intersection calculations
 - Diagrams rendered at exact EA dimensions (e.g., 815 x 1067 pixels)
 - Classes now show which diagrams they appear in
 
@@ -188,7 +267,18 @@ Key tables in .qea SQLite database:
 ## Dependencies
 
 ```bash
-pip install graphviz Pillow
+pip install -r requirements.txt
+```
+
+Core dependencies:
+- `PyYAML` - Configuration file support
+- `graphviz` - Diagram generation
+- `Pillow` - Image processing for diagrams
+- `markdown` - HTML documentation generation
+
+**Windows-only (for EA diagram extraction):**
+```bash
+pip install pywin32
 ```
 
 ## Testing
@@ -310,11 +400,14 @@ Remember: ALL changes must be on a feature branch - never commit directly to dev
 
 ---
 
-**Last Updated**: 2025-11-11
+**Last Updated**: 2025-11-12
 **Current Branch**: develop
-**Latest Feature**: Pixel-perfect diagram rendering using PIL/Pillow
+**Latest Feature**: EA diagram extraction utility with COM automation
 **Status**: All tests passing ✅
 **Key Features**:
+- Windows COM automation for extracting diagrams directly from EA
+- Configurable EA diagrams directory (YAML, CLI, GUI)
+- HTML documentation generation with native Python
 - Pixel-perfect diagrams matching EA layout exactly
 - All diagram types supported (use cases, classes, components, state machines)
 - Breadcrumb navigation on all pages

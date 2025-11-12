@@ -8,6 +8,7 @@ A Python utility that extracts and documents UML models from Sparx Enterprise Ar
 - **HTML Generation**: Convert markdown documentation to HTML with embedded CSS styling
 - **Diagram Rendering**: Generates pixel-perfect PNG diagrams matching EA's visual style
 - **EA Diagram Integration**: Use EA-exported diagrams when available for perfect accuracy
+- **Automated Diagram Extraction**: Windows utility to export all diagrams directly from EA
 - **Rich Relationship Mapping**: Documents inheritance, associations, dependencies, and more
 - **Quality Analysis**: Identifies undocumented elements and quality issues
 - **Markdown Output**: Professional, navigable documentation in markdown format
@@ -103,6 +104,27 @@ python sparx_doc_generator.py model.qea --ea-diagrams-dir /path/to/ea/exports
 ```
 
 Export diagrams from EA with format: `{GUID}-{timestamp}.png`
+
+### Automated Diagram Extraction (Windows Only)
+
+Extract all diagrams directly from EA using the COM automation utility:
+
+```bash
+python ea_diagram_extractor.py model.qea
+```
+
+With custom output directory:
+
+```bash
+python ea_diagram_extractor.py model.qea -o exported_diagrams
+```
+
+**Requirements:**
+- Windows OS
+- Enterprise Architect installed
+- pywin32 package: `pip install pywin32`
+
+This utility connects to EA directly and exports all diagrams in the correct `{GUID}-{timestamp}.png` format for use with `--ea-diagrams-dir`.
 
 ### Change Tracking
 
