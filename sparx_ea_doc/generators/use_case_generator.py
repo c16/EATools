@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from collections import defaultdict
 from typing import Dict, List
-from ..utils import generate_breadcrumbs
+from ..utils import generate_breadcrumbs, generate_filename_with_id
 from ..template_renderer import TemplateRenderer
 
 logger = logging.getLogger(__name__)
@@ -122,7 +122,7 @@ class UseCaseGenerator:
         uc_index_content += "## Use Case List\n\n"
 
         for uc in self.extractor.use_cases:
-            uc_filename = f"{uc.name.lower().replace(' ', '-')}.md"
+            uc_filename = generate_filename_with_id(uc.name, uc.object_id)
             uc_file = uc_dir / uc_filename
 
             # Add to index
@@ -247,25 +247,25 @@ class UseCaseGenerator:
         else:
             data['if_related'] = False
 
-        # Add related requirements
-        requirements_set = set()
+        # Add related requirements (store as dict to preserve object_id)
+        requirements_dict = {}
         for conn in connectors:
             if conn.source_id == uc.object_id:
                 target = self.extractor.elements.get(conn.target_id)
                 if target and target.object_type == 'Requirement':
-                    requirements_set.add(target.name)
+                    requirements_dict[target.name] = target.object_id
             elif conn.target_id == uc.object_id:
                 source = self.extractor.elements.get(conn.source_id)
                 if source and source.object_type == 'Requirement':
-                    requirements_set.add(source.name)
+                    requirements_dict[source.name] = source.object_id
 
-        if requirements_set:
+        if requirements_dict:
             data['if_requirements'] = True
             req_content = ""
-            from ..utils import sanitize_filename
-            for req_name in sorted(requirements_set):
-                req_filename = sanitize_filename(req_name)
-                req_content += f"- [{req_name}](../requirements/{req_filename}.md)\n"
+            for req_name in sorted(requirements_dict.keys()):
+                req_object_id = requirements_dict[req_name]
+                req_filename = generate_filename_with_id(req_name, req_object_id)
+                req_content += f"- [{req_name}](../requirements/{req_filename})\n"
             data['requirement_list'] = req_content
         else:
             data['if_requirements'] = False

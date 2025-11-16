@@ -5,7 +5,7 @@ Component documentation generator module.
 import logging
 from pathlib import Path
 from typing import Dict, List
-from ..utils import generate_breadcrumbs
+from ..utils import generate_breadcrumbs, generate_filename_with_id
 from ..template_renderer import TemplateRenderer
 
 logger = logging.getLogger(__name__)
@@ -102,7 +102,7 @@ class ComponentGenerator:
 
         # Generate documentation for each component
         for comp in self.extractor.components:
-            comp_filename = f"comp-{comp.name.lower().replace(' ', '-')}.md"
+            comp_filename = generate_filename_with_id(comp.name, comp.object_id, prefix='comp-')
             comp_file = comp_dir / comp_filename
             comp_index_content += f"- [{comp.name}]({comp_filename})\n"
 

@@ -17,5 +17,5 @@ This document provides an overview of all state machines in the system.
 
 ## State Machine List
 
-- [Order State Machine](sm-order-state-machine.md)
-- [Shipped](sm-shipped.md)
+- [Order State Machine](sm-order-state-machine-2.md)
+- [Shipped](sm-shipped-3.md)

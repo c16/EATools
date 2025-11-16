@@ -122,22 +122,86 @@ def sanitize_filename(name: str) -> str:
     Examples:
         'Login Use Case' -> 'login-use-case'
         'Add Item to Basket' -> 'add-item-to-basket'
+        'Name\twith\ttabs' -> 'name-with-tabs'
+        'Name\nwith\nnewlines' -> 'name-with-newlines'
     """
-    # Convert to lowercase and replace spaces with hyphens
-    filename = name.lower().replace(' ', '-')
+    import re
+    import unicodedata
 
-    # Remove or replace problematic characters
+    # Handle None or empty string
+    if not name:
+        return 'unnamed'
+
+    # Convert to string (in case it's not)
+    name = str(name)
+
+    # Normalize unicode characters
+    # NFKD = Normal Form KD (Compatibility Decomposition)
+    name = unicodedata.normalize('NFKD', name)
+
+    # Remove control characters and other unprintable characters
+    # Keep only printable ASCII and common unicode chars
+    name = ''.join(char for char in name if unicodedata.category(char)[0] != 'C')
+
+    # Convert to lowercase
+    filename = name.lower()
+
+    # Replace whitespace (spaces, tabs, newlines) with hyphens
+    filename = re.sub(r'\s+', '-', filename)
+
+    # Remove or replace problematic characters for filesystems
+    # Windows: \ / : * ? " < > |
+    # Unix: / (null)
     filename = filename.replace('/', '-').replace('\\', '-')
     filename = filename.replace(':', '-').replace('*', '-')
     filename = filename.replace('?', '').replace('"', '')
     filename = filename.replace('<', '').replace('>', '')
     filename = filename.replace('|', '-')
 
-    # Remove multiple consecutive hyphens
-    while '--' in filename:
-        filename = filename.replace('--', '-')
+    # Remove any remaining non-alphanumeric characters except hyphens and underscores
+    filename = re.sub(r'[^a-z0-9\-_]', '', filename)
 
-    # Remove leading/trailing hyphens
-    filename = filename.strip('-')
+    # Remove multiple consecutive hyphens
+    filename = re.sub(r'-+', '-', filename)
+
+    # Remove leading/trailing hyphens or underscores
+    filename = filename.strip('-_')
+
+    # Ensure filename is not empty after sanitization
+    if not filename:
+        filename = 'unnamed'
+
+    # Limit length to 200 characters (leaving room for extension and object_id)
+    if len(filename) > 200:
+        filename = filename[:200].rstrip('-_')
+
+    return filename
+
+
+def generate_filename_with_id(name: str, object_id: int, prefix: str = '', extension: str = 'md') -> str:
+    """
+    Generate a filename that includes the object_id to prevent name clashes.
+
+    Args:
+        name: The element name
+        object_id: The object ID from the database
+        prefix: Optional prefix (e.g., 'sm-' for state machines, 'comp-' for components)
+        extension: File extension without the dot (default: 'md')
+
+    Returns:
+        Sanitized filename with object_id (e.g., 'login-use-case-123.md')
+
+    Examples:
+        generate_filename_with_id('Login Use Case', 123) -> 'login-use-case-123.md'
+        generate_filename_with_id('Order', 456, extension='html') -> 'order-456.html'
+        generate_filename_with_id('PaymentSM', 789, prefix='sm-') -> 'sm-paymentsm-789.md'
+    """
+    sanitized_name = sanitize_filename(name)
+
+    # Combine prefix, name, and object_id
+    if prefix:
+        filename = f"{prefix}{sanitized_name}-{object_id}.{extension}"
+    else:
+        filename = f"{sanitized_name}-{object_id}.{extension}"
 
     return filename

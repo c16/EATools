@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from collections import defaultdict
 from typing import Dict, List
-from ..utils import generate_breadcrumbs
+from ..utils import generate_breadcrumbs, generate_filename_with_id, sanitize_filename
 from ..template_renderer import TemplateRenderer
 
 logger = logging.getLogger(__name__)
@@ -112,7 +112,8 @@ class ClassGenerator:
 
         # Generate documentation for each package
         for package_name, classes in sorted(classes_by_package.items()):
-            package_dir = class_dir / package_name.lower().replace(' ', '-')
+            package_dir_name = sanitize_filename(package_name)
+            package_dir = class_dir / package_dir_name
             package_dir.mkdir(exist_ok=True)
 
             class_index_content += f"### {package_name}\n\n"
@@ -138,9 +139,9 @@ class ClassGenerator:
             package_index_content += "## Classes\n\n"
 
             for cls in sorted(classes, key=lambda x: x.name):
-                class_filename = f"{cls.name.lower().replace(' ', '-')}.md"
+                class_filename = generate_filename_with_id(cls.name, cls.object_id)
                 class_file = package_dir / class_filename
-                class_index_content += f"- [{cls.name}]({package_name.lower().replace(' ', '-')}/{class_filename})\n"
+                class_index_content += f"- [{cls.name}]({package_dir_name}/{class_filename})\n"
                 package_index_content += f"- [{cls.name}]({class_filename})\n"
 
                 class_content = self._generate_single_class(cls, class_file)
