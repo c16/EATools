@@ -9,6 +9,9 @@ A Python utility that extracts and documents UML models from Sparx Enterprise Ar
 - **Diagram Rendering**: Generates pixel-perfect PNG diagrams matching EA's visual style
 - **EA Diagram Integration**: Use EA-exported diagrams when available for perfect accuracy
 - **Automated Diagram Extraction**: Windows utility to export all diagrams directly from EA
+- **Robust Filename Generation**: Object ID-based filenames prevent name clashes; handles tabs, newlines, and unprintable characters
+- **Multi-Codepage Support**: Safely handles notes from different sources (UTF-8, Windows-1252, ISO-8859-1, CP1252)
+- **Responsive HTML Output**: Images scale properly on all screen sizes without horizontal overflow
 - **Rich Relationship Mapping**: Documents inheritance, associations, dependencies, and more
 - **Quality Analysis**: Identifies undocumented elements and quality issues
 - **Markdown Output**: Professional, navigable documentation in markdown format
@@ -180,21 +183,21 @@ docs/
 ├── use-cases/
 │   ├── index.md                 # Use case overview
 │   ├── actors.md                # Actor catalog
-│   └── uc-[id]-[name].md        # Individual use case files
+│   └── [name]-[objectid].md     # Individual use case files (e.g., login-use-case-10.md)
 ├── requirements/
 │   ├── index.md                 # Requirements overview
-│   └── req-[name].md            # Individual requirement files
+│   └── [name]-[objectid].md     # Individual requirement files (e.g., security-req-45.md)
 ├── state-machines/
 │   ├── index.md                 # State machine overview
-│   └── sm-[name].md             # Individual state machine files
+│   └── sm-[name]-[objectid].md  # Individual state machine files (e.g., sm-order-state-2.md)
 ├── components/
 │   ├── index.md                 # Component overview
 │   ├── interfaces.md            # Interface catalog
-│   └── comp-[name].md           # Individual component files
+│   └── comp-[name]-[objectid].md # Individual component files (e.g., comp-businesslogic-27.md)
 ├── classes/
 │   ├── index.md                 # Class overview
 │   └── [package]/               # Package-based organization
-│       └── [class].md           # Individual class files
+│       └── [name]-[objectid].md # Individual class files (e.g., order-31.md)
 └── reports/
     ├── quality-report.md        # Documentation quality metrics
     └── dependencies.md          # Dependency analysis
@@ -370,10 +373,18 @@ cd docs
 ## Limitations
 
 - Only supports .qea (SQLite) format, not .eap (Access) format
-- HTML in notes is stripped (converted to plain text)
 - Tagged values extraction is basic (can be extended)
 - Performance may vary with very large models (1000+ elements)
 - Generated diagrams may not exactly match EA's layout (use --ea-diagrams-dir for pixel-perfect diagrams)
+
+## Recent Improvements
+
+**Robustness & Reliability (November 2025)**
+- **Object ID-based filenames**: All generated files include object IDs (e.g., `login-use-case-10.md`) to prevent name clashes when importing from multiple repositories
+- **Enhanced filename sanitization**: Handles tabs, newlines, unprintable characters, and unicode normalization
+- **Multi-codepage text cleaning**: Safely handles notes pasted from different sources (Word, PDF, web) with different encodings; removes control characters and problematic unicode while preserving formatting
+- **Responsive HTML images**: Fixed horizontal overflow issues; images scale properly on all screen sizes
+- **Comprehensive testing**: 29 test cases covering real-world text cleaning scenarios - all passing
 
 ## Development
 
@@ -383,6 +394,7 @@ cd docs
 EATools/
 ├── sparx_doc_generator.py          # Main CLI entry point
 ├── sparx_doc_gui.py                # GUI application
+├── ea_diagram_extractor.py         # EA COM automation utility (Windows only)
 ├── config.yaml                      # Sample configuration file
 ├── requirements.txt                 # Python dependencies
 ├── templates/                       # Markdown templates
@@ -390,13 +402,16 @@ EATools/
 │   ├── extractor.py                # Database extraction
 │   ├── generators/                 # Documentation generators
 │   ├── diagram_renderer.py         # Diagram rendering
-│   ├── html_generator.py          # HTML conversion
+│   ├── html_generator.py          # HTML conversion with responsive images
 │   ├── quality_reporter.py        # Quality analysis
 │   ├── diff_generator.py          # Change tracking
-│   └── template_renderer.py       # Template processing
+│   ├── template_renderer.py       # Template processing
+│   ├── models.py                  # Data models with robust text cleaning
+│   └── utils.py                   # Utilities (sanitization, breadcrumbs, text cleaning)
 ├── docs_golden/                    # Regression test baseline
 ├── sample_diagrams/               # EA-exported diagrams
-└── test_doc_consistency.py        # Regression tests
+├── test_doc_consistency.py        # Regression tests
+└── test_text_cleaning.py          # Text cleaning test suite (29 tests)
 ```
 
 ### Extending the Generator
