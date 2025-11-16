@@ -31,6 +31,10 @@ class HTMLGenerator:
 
     # Default CSS for styling (embedded)
     DEFAULT_CSS = """
+    html {
+        overflow-x: hidden;
+    }
+
     body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         line-height: 1.6;
@@ -39,6 +43,7 @@ class HTMLGenerator:
         padding: 20px;
         color: #333;
         background: #f5f5f5;
+        overflow-x: hidden;
     }
 
     .container {
@@ -128,9 +133,45 @@ class HTMLGenerator:
 
     img {
         max-width: 100%;
+        width: auto;
         height: auto;
+        display: block;
+        margin: 20px auto;
         border-radius: 5px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        object-fit: contain;
+    }
+
+    /* Ensure paragraphs containing images don't overflow */
+    p img {
+        display: block;
+        margin: 20px auto;
+    }
+
+    /* Prevent any horizontal overflow */
+    * {
+        box-sizing: border-box;
+    }
+
+    .container {
+        overflow-x: auto;
+    }
+
+    /* For very large images, add scrolling */
+    @media screen and (max-width: 1200px) {
+        img {
+            max-width: calc(100vw - 120px);
+        }
+    }
+
+    @media screen and (max-width: 768px) {
+        .container {
+            padding: 20px;
+        }
+
+        img {
+            max-width: calc(100vw - 60px);
+        }
     }
 
     ul, ol {
