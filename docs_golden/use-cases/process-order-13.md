@@ -8,7 +8,10 @@
 
 **Version: 1.0 | Modified: 2025-11-05 20:18:11 | GUID: {5A7174FA-7DAA-49df-8F67-710412B60C89}**
 
-**Description:** Business Rules: The customer must have an account The item must be in stock The customer must have a valid payment card registered
+**Description:** Business Rules:
+The customer must have an account
+The item must be in stock
+The customer must have a valid payment card registered
 
 
 **Actors:** Customer, Payment System

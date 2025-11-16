@@ -2,8 +2,11 @@
 Utility functions for documentation generation
 """
 
+import re
+import html
+import unicodedata
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 
 def generate_breadcrumbs(file_path: Path, output_dir: Path, page_title: str) -> str:
@@ -205,3 +208,123 @@ def generate_filename_with_id(name: str, object_id: int, prefix: str = '', exten
         filename = f"{sanitized_name}-{object_id}.{extension}"
 
     return filename
+
+
+def clean_text_content(text: Optional[str], remove_html: bool = True) -> str:
+    """
+    Robustly clean text content to handle different codepages and unprintable characters.
+
+    This function ensures text can always be safely written to files without encoding errors.
+    It handles text pasted from various sources with different codepages (UTF-8, Windows-1252,
+    ISO-8859-1, etc.) and removes problematic characters.
+
+    Args:
+        text: The text to clean (can be None)
+        remove_html: Whether to remove HTML tags (default: True)
+
+    Returns:
+        Cleaned text safe for writing to files
+
+    Examples:
+        clean_text_content(None) -> ''
+        clean_text_content('Hello\x00World') -> 'HelloWorld'
+        clean_text_content('<p>Test</p>') -> 'Test'
+        clean_text_content('Café\u200b') -> 'Café'  (removes zero-width space)
+    """
+    # Handle None or empty
+    if not text:
+        return ""
+
+    # Convert to string if not already
+    try:
+        if isinstance(text, bytes):
+            # Try multiple encodings in order of likelihood
+            for encoding in ['utf-8', 'windows-1252', 'iso-8859-1', 'cp1252']:
+                try:
+                    text = text.decode(encoding)
+                    break
+                except (UnicodeDecodeError, AttributeError):
+                    continue
+            else:
+                # Last resort: decode with errors='replace'
+                text = text.decode('utf-8', errors='replace')
+        else:
+            text = str(text)
+    except Exception:
+        # If all else fails, return empty string
+        return ""
+
+    # Remove null bytes (can cause issues in files)
+    text = text.replace('\x00', '')
+
+    # Remove HTML tags if requested
+    if remove_html:
+        # Remove HTML tags
+        text = re.sub(r'<[^>]+>', '', text)
+        # Decode HTML entities
+        try:
+            text = html.unescape(text)
+        except Exception:
+            pass  # If unescape fails, continue with original text
+
+    # Normalize unicode to NFKC (Compatibility Composition)
+    # This handles composed vs decomposed characters
+    try:
+        text = unicodedata.normalize('NFKC', text)
+    except Exception:
+        pass  # If normalization fails, continue with original text
+
+    # Remove or replace problematic unicode categories
+    cleaned_chars = []
+    for char in text:
+        try:
+            category = unicodedata.category(char)
+            # Keep most characters, but filter out problematic ones
+            if category[0] == 'C':  # Control characters
+                # Keep common whitespace (tab, newline, carriage return)
+                if char in ['\t', '\n', '\r']:
+                    cleaned_chars.append(char)
+                # Skip other control characters
+            elif category == 'Cf':  # Format characters (like zero-width space)
+                # Skip format characters except soft hyphen
+                if char != '\u00ad':
+                    continue
+                cleaned_chars.append(char)
+            else:
+                # Keep the character
+                cleaned_chars.append(char)
+        except Exception:
+            # If we can't categorize, try to keep printable ASCII
+            if 32 <= ord(char) <= 126 or char in ['\t', '\n', '\r']:
+                cleaned_chars.append(char)
+
+    text = ''.join(cleaned_chars)
+
+    # Remove unicode replacement characters that indicate encoding errors
+    text = text.replace('\ufffd', '')  # Replacement character
+    text = text.replace('\ufeff', '')  # Byte order mark (BOM)
+
+    # Normalize line endings to Unix style
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+
+    # Remove excessive whitespace while preserving intentional formatting
+    # Don't collapse newlines, but do collapse spaces/tabs
+    lines = text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        # Collapse multiple spaces/tabs to single space
+        line = re.sub(r'[ \t]+', ' ', line)
+        # Strip leading/trailing whitespace from each line
+        line = line.strip()
+        cleaned_lines.append(line)
+
+    # Join lines back together
+    text = '\n'.join(cleaned_lines)
+
+    # Remove excessive blank lines (more than 2 consecutive)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+
+    # Final strip
+    text = text.strip()
+
+    return text
