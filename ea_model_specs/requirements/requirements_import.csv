@@ -1,0 +1,31 @@
+Type,GUID,Name,Alias,Notes,Phase,Priority,Status,Difficulty,Parent_GUID
+requirement,REQ-FR-001,Data Extraction from EA Models,FR-001,"The system shall extract model data from Sparx Enterprise Architect .qea database files.",Implementation,High,Implemented,Medium,
+requirement,REQ-FR-001.1,SQLite Database Connection,FR-001.1,"Connect to and query .qea SQLite database files. Handle errors gracefully.",Implementation,High,Implemented,Low,REQ-FR-001
+requirement,REQ-FR-001.2,Use Case Extraction,FR-001.2,"Extract use case elements with notes and stereotypes. Extract actors and relationships.",Implementation,High,Implemented,Medium,REQ-FR-001
+requirement,REQ-FR-001.3,State Machine Extraction,FR-001.3,"Extract state machine elements including states and transitions with triggers and guards.",Implementation,High,Implemented,Medium,REQ-FR-001
+requirement,REQ-FR-001.4,Component Extraction,FR-001.4,"Extract component elements and their interfaces. Extract ports and dependencies.",Implementation,High,Implemented,Medium,REQ-FR-001
+requirement,REQ-FR-001.5,Class Extraction,FR-001.5,"Extract class elements with attributes operations and relationships.",Implementation,High,Implemented,High,REQ-FR-001
+requirement,REQ-FR-001.6,Diagram Metadata Extraction,FR-001.6,"Extract diagram information and element-diagram associations.",Implementation,High,Implemented,Low,REQ-FR-001
+requirement,REQ-FR-002,Documentation Generation,FR-002,"Generate comprehensive documentation in multiple formats.",Implementation,High,Implemented,High,
+requirement,REQ-FR-002.1,Markdown Documentation,FR-002.1,"Generate structured markdown documentation with hierarchical organization.",Implementation,High,Implemented,Medium,REQ-FR-002
+requirement,REQ-FR-002.2,HTML Documentation,FR-002.2,"Convert markdown to HTML with professional styling and responsive design.",Implementation,High,Implemented,Medium,REQ-FR-002
+requirement,REQ-FR-002.3,Breadcrumb Navigation,FR-002.3,"Generate breadcrumb navigation showing document hierarchy.",Implementation,High,Implemented,Low,REQ-FR-002
+requirement,REQ-FR-002.4,Quality Reports,FR-002.4,"Generate quality analysis reports with coverage metrics.",Implementation,High,Implemented,Medium,REQ-FR-002
+requirement,REQ-FR-003,Diagram Rendering,FR-003,"Render UML diagrams from extracted model data.",Implementation,High,Implemented,High,
+requirement,REQ-FR-003.1,Use Case Diagram Rendering,FR-003.1,"Render use case diagrams with actors use cases and relationships.",Implementation,High,Implemented,Medium,REQ-FR-003
+requirement,REQ-FR-003.2,Class Diagram Rendering,FR-003.2,"Render class diagrams with inheritance associations and stereotypes.",Implementation,High,Implemented,High,REQ-FR-003
+requirement,REQ-FR-003.3,Component Diagram Rendering,FR-003.3,"Render component diagrams with interfaces in lollipop and socket notation.",Implementation,High,Implemented,Medium,REQ-FR-003
+requirement,REQ-FR-003.4,State Machine Diagram Rendering,FR-003.4,"Render state machine diagrams with states transitions and activities.",Implementation,High,Implemented,Medium,REQ-FR-003
+requirement,REQ-FR-004,EA Diagram Integration,FR-004,"Support integration with EA-exported diagrams for pixel-perfect accuracy.",Implementation,Medium,Implemented,Medium,
+requirement,REQ-FR-004.1,COM Automation for Diagram Extraction,FR-004.1,"Use Windows COM automation to extract diagrams directly from EA.",Implementation,Medium,Implemented,Medium,REQ-FR-004
+requirement,REQ-FR-004.2,EA-Exported Diagram Usage,FR-004.2,"Use EA-exported diagrams when available fall back to rendering.",Implementation,Medium,Implemented,Low,REQ-FR-004
+requirement,REQ-FR-005,Change Tracking,FR-005,"Track changes between documentation versions with visual diff markup.",Implementation,Medium,Implemented,Medium,
+requirement,REQ-FR-006,Quality Analysis,FR-006,"Analyze model quality and documentation completeness.",Implementation,Medium,Implemented,Low,
+requirement,REQ-FR-007,Configuration Management,FR-007,"Support flexible configuration options via YAML and CLI.",Implementation,Medium,Implemented,Low,
+requirement,REQ-FR-008,Template System,FR-008,"Support customizable documentation templates with fallback.",Implementation,Low,Implemented,Low,
+requirement,REQ-NFR-001,Performance,NFR-001,"The system shall handle large models with 1000+ elements efficiently.",Implementation,High,Implemented,Medium,
+requirement,REQ-NFR-002,Robustness,NFR-002,"The system shall handle problematic input data gracefully without crashes.",Implementation,High,Implemented,Medium,
+requirement,REQ-NFR-003,Compatibility,NFR-003,"The system shall support .qea SQLite format on Windows Linux and macOS.",Implementation,High,Implemented,Low,
+requirement,REQ-NFR-004,Maintainability,NFR-004,"The system shall be modular and maintainable with clear separation of concerns.",Implementation,Medium,Implemented,Low,
+requirement,REQ-NFR-005,Usability,NFR-005,"The system shall be easy to use with clear CLI and GUI interfaces.",Implementation,Medium,Implemented,Low,
+requirement,REQ-NFR-006,Testability,NFR-006,"The system shall be thoroughly testable with regression test suite.",Implementation,Medium,Implemented,Medium,
