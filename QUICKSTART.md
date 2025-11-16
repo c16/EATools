@@ -161,7 +161,30 @@ python test_doc_consistency.py --update
 
 ## Recent Work Completed
 
-### EA Diagram Extraction & Integration (Latest)
+### Robustness & Reliability Improvements (Latest - Nov 2025)
+- **Object ID in filenames** - Prevents name clashes when importing from other repositories
+  - Format: `name-objectid.md` (e.g., `login-use-case-10.md`)
+  - All generators updated: use cases, state machines, components, classes, requirements
+  - Cross-reference links updated to use object IDs
+- **Enhanced filename sanitization** - Handles tabs, newlines, unprintable characters
+  - Unicode normalization (NFKD)
+  - Removes control characters and problematic symbols
+  - Length limit of 200 characters
+  - Platform-safe across Windows, Linux, macOS
+- **Robust text cleaning** - Handles notes from different codepages without crashes
+  - Supports UTF-8, Windows-1252, ISO-8859-1, CP1252
+  - Removes null bytes, control characters, format characters
+  - Preserves intentional formatting (newlines, paragraph breaks)
+  - Comprehensive test suite with 29 test cases - all passing ✅
+- **HTML image overflow fix** - Large diagrams no longer cut off horizontally
+  - Responsive image scaling with breakpoints
+  - Centered images with proper spacing
+  - Works on all screen sizes (desktop, tablet, mobile)
+- **Future enhancements roadmap** - 86+ enhancement ideas documented
+  - Organized into 11 categories
+  - "Quick Wins" section with 10 high-impact, 2-4 hour tasks
+
+### EA Diagram Extraction & Integration
 - Added Windows COM automation utility (`ea_diagram_extractor.py`) for extracting diagrams directly from EA
 - Automatic diagram export in `{GUID}-{timestamp}.png` format
 - Configurable EA diagrams directory via YAML, CLI (`--ea-diagrams-dir`), and GUI
