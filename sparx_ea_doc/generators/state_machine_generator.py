@@ -5,7 +5,7 @@ State machine documentation generator module.
 import logging
 from pathlib import Path
 from typing import Dict, List
-from ..utils import generate_breadcrumbs
+from ..utils import generate_breadcrumbs, generate_filename_with_id
 from ..template_renderer import TemplateRenderer
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ class StateMachineGenerator:
 
         # Generate documentation for each state machine
         for sm in self.extractor.state_machines:
-            sm_filename = f"sm-{sm.name.lower().replace(' ', '-')}.md"
+            sm_filename = generate_filename_with_id(sm.name, sm.object_id, prefix='sm-')
             sm_file = sm_dir / sm_filename
             sm_index_content += f"- [{sm.name}]({sm_filename})\n"
 

@@ -23,6 +23,6 @@ This document provides an overview of all components in the system.
 
 ## Component List
 
-- [BusinessLogic](comp-businesslogic.md)
-- [DataAccess](comp-dataaccess.md)
-- [UserInterface](comp-userinterface.md)
+- [BusinessLogic](comp-businesslogic-27.md)
+- [DataAccess](comp-dataaccess-28.md)
+- [UserInterface](comp-userinterface-26.md)

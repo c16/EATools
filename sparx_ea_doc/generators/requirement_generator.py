@@ -5,7 +5,7 @@ Requirement documentation generator module.
 import logging
 from pathlib import Path
 from typing import Dict, List
-from ..utils import generate_breadcrumbs, sanitize_filename
+from ..utils import generate_breadcrumbs, sanitize_filename, generate_filename_with_id
 from ..template_renderer import TemplateRenderer
 
 logger = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ class RequirementGenerator:
         for stereotype in sorted(by_stereotype.keys()):
             req_index_content += f"## {stereotype}\n\n"
             for req in sorted(by_stereotype[stereotype], key=lambda r: r.name):
-                req_filename = f"{sanitize_filename(req.name)}.md"
+                req_filename = generate_filename_with_id(req.name, req.object_id)
                 # Create display name in "Alias - Name" format
                 if req.alias:
                     display_name = f"{req.alias} - {req.name}"
@@ -80,7 +80,7 @@ class RequirementGenerator:
 
         # Generate individual requirement files
         for req in self.extractor.requirements:
-            req_filename = f"{sanitize_filename(req.name)}.md"
+            req_filename = generate_filename_with_id(req.name, req.object_id)
             req_file = req_dir / req_filename
 
             # Generate individual requirement file
@@ -196,8 +196,15 @@ class RequirementGenerator:
             data['if_related_use_cases'] = True
             uc_list = []
             for uc_name in sorted(req.related_use_cases):
-                uc_filename = sanitize_filename(uc_name)
-                uc_list.append(f"- [{uc_name}](../use-cases/{uc_filename}.md)")
+                # Look up the use case object to get its object_id
+                uc_obj = next((uc for uc in self.extractor.use_cases if uc.name == uc_name), None)
+                if uc_obj:
+                    uc_filename = generate_filename_with_id(uc_name, uc_obj.object_id)
+                    uc_list.append(f"- [{uc_name}](../use-cases/{uc_filename})")
+                else:
+                    # Fallback if use case not found
+                    uc_filename = sanitize_filename(uc_name)
+                    uc_list.append(f"- [{uc_name}](../use-cases/{uc_filename}.md)")
             data['related_use_case'] = '\n'.join(uc_list)
         else:
             data['if_related_use_cases'] = False
@@ -261,8 +268,15 @@ class RequirementGenerator:
         if req.related_use_cases:
             content += "**Related Use Cases:**\n\n"
             for uc_name in sorted(req.related_use_cases):
-                uc_filename = sanitize_filename(uc_name)
-                content += f"- [{uc_name}](../use-cases/{uc_filename}.md)\n"
+                # Look up the use case object to get its object_id
+                uc_obj = next((uc for uc in self.extractor.use_cases if uc.name == uc_name), None)
+                if uc_obj:
+                    uc_filename = generate_filename_with_id(uc_name, uc_obj.object_id)
+                    content += f"- [{uc_name}](../use-cases/{uc_filename})\n"
+                else:
+                    # Fallback if use case not found
+                    uc_filename = sanitize_filename(uc_name)
+                    content += f"- [{uc_name}](../use-cases/{uc_filename}.md)\n"
             content += "\n"
 
         return content

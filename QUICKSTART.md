@@ -161,7 +161,30 @@ python test_doc_consistency.py --update
 
 ## Recent Work Completed
 
-### EA Diagram Extraction & Integration (Latest)
+### Robustness & Reliability Improvements (Latest - Nov 2025)
+- **Object ID in filenames** - Prevents name clashes when importing from other repositories
+  - Format: `name-objectid.md` (e.g., `login-use-case-10.md`)
+  - All generators updated: use cases, state machines, components, classes, requirements
+  - Cross-reference links updated to use object IDs
+- **Enhanced filename sanitization** - Handles tabs, newlines, unprintable characters
+  - Unicode normalization (NFKD)
+  - Removes control characters and problematic symbols
+  - Length limit of 200 characters
+  - Platform-safe across Windows, Linux, macOS
+- **Robust text cleaning** - Handles notes from different codepages without crashes
+  - Supports UTF-8, Windows-1252, ISO-8859-1, CP1252
+  - Removes null bytes, control characters, format characters
+  - Preserves intentional formatting (newlines, paragraph breaks)
+  - Comprehensive test suite with 29 test cases - all passing ✅
+- **HTML image overflow fix** - Large diagrams no longer cut off horizontally
+  - Responsive image scaling with breakpoints
+  - Centered images with proper spacing
+  - Works on all screen sizes (desktop, tablet, mobile)
+- **Future enhancements roadmap** - 86+ enhancement ideas documented
+  - Organized into 11 categories
+  - "Quick Wins" section with 10 high-impact, 2-4 hour tasks
+
+### EA Diagram Extraction & Integration
 - Added Windows COM automation utility (`ea_diagram_extractor.py`) for extracting diagrams directly from EA
 - Automatic diagram export in `{GUID}-{timestamp}.png` format
 - Configurable EA diagrams directory via YAML, CLI (`--ea-diagrams-dir`), and GUI
@@ -370,18 +393,179 @@ cat test_docs/classes/domain/order.md | head -5
 2. Output directory is gitignored (use --output to customize)
 3. Some diagram types may not render perfectly (complex nesting, custom shapes)
 
-## Potential Next Steps
+## Future Enhancements
 
-1. **Add search functionality** - Full-text search across documentation
-2. **Generate navigation sidebar** - For easier browsing
-3. **Support more diagram types** - Sequence, activity, deployment diagrams
-4. **Add configuration file** - Customize output format, filters, etc.
-5. **Cross-references** - Link between related elements in documentation
-6. **Changelog generation** - Track model changes over time
-7. **Improved attribute/operation formatting** - Visibility symbols (+, -, #, ~)
-8. **Package diagrams** - Show package hierarchy and dependencies
-9. **Diagram annotations** - Add labels, stereotypes from EA
-10. **Better connector routing** - Smarter line routing in diagrams
+### 🔍 Search & Navigation (High Priority)
+1. **Full-text search** - Searchable HTML documentation with client-side JavaScript search
+2. **Navigation sidebar** - Collapsible tree view of all documentation sections
+3. **Breadcrumb improvements** - Show element types and stereotypes in breadcrumbs
+4. **Table of contents** - Auto-generate TOC for long documents
+5. **Cross-reference links** - Auto-link element names mentioned in notes to their documentation
+6. **"Back to top" links** - Quick navigation on long pages
+7. **Recently viewed** - Track and show recently accessed documentation pages
+
+### 📊 Additional Diagram Types
+1. **Sequence diagrams** - Interaction diagrams showing message flows
+2. **Activity diagrams** - Process flows and workflows
+3. **Deployment diagrams** - System architecture and node relationships
+4. **Package diagrams** - Package hierarchy and dependencies
+5. **Timing diagrams** - Time-based behavior visualization
+6. **Communication diagrams** - Collaboration between objects
+7. **Interactive SVG diagrams** - Clickable diagram elements that link to documentation
+8. **Diagram zoom/pan** - Viewer controls for large diagrams
+9. **Mermaid diagram generation** - Generate Mermaid.js code for diagrams
+
+### 📈 Traceability & Analysis (High Value)
+1. **Traceability matrix** - Requirements → Use Cases → Classes → Tests
+2. **Impact analysis** - Show what's affected by changes to an element
+3. **Coverage reports** - Which requirements have use cases, which use cases have tests
+4. **Dependency graph** - Visual graph of element dependencies
+5. **Gap analysis** - Find missing relationships, undocumented elements
+6. **Model metrics dashboard** - Complexity, coverage, documentation completeness
+7. **Element usage tracking** - Where is this class/interface used?
+8. **Orphan detection** - Find unreferenced elements
+
+### 📝 Export & Integration
+1. **PDF export** - Generate professional PDF documentation with table of contents
+2. **MS Word/DocX export** - Corporate documentation format
+3. **Confluence integration** - Push documentation directly to Confluence wiki
+4. **SharePoint integration** - Sync with SharePoint document libraries
+5. **LaTeX export** - For academic/scientific documentation
+6. **API documentation** - Generate OpenAPI/Swagger specs from interfaces
+7. **Multiple language support** - Generate docs in multiple languages
+8. **Custom CSS themes** - Allow users to customize HTML styling
+
+### ✅ Quality & Validation
+1. **Model validation rules** - Check EA modeling best practices
+   - Naming conventions (PascalCase for classes, camelCase for attributes)
+   - Required stereotypes for specific element types
+   - Mandatory documentation for public elements
+   - Relationship consistency checks
+2. **Spelling checker** - Check element names and notes for typos
+3. **Consistency checks** - Verify naming patterns across packages
+4. **Documentation coverage** - Report on elements without notes
+5. **Broken link detection** - Find references to non-existent elements
+6. **Duplicate detection** - Find elements with duplicate names or similar purposes
+
+### 🎨 Customization & Templates
+1. **Custom documentation templates** - User-defined Jinja2 templates for all element types
+2. **Template library** - Pre-built templates for different documentation styles
+3. **Conditional sections** - Show/hide sections based on stereotypes or tags
+4. **Custom styling** - CSS customization for HTML output
+5. **Logo and branding** - Add company logo to documentation
+6. **Header/footer customization** - Custom headers and footers
+7. **Custom metadata fields** - Support for EA tagged values in documentation
+
+### 🔄 Version Control & Comparison
+1. **Side-by-side diff viewer** - Visual comparison of two documentation versions in HTML
+2. **Model timeline** - Show evolution of model over time
+3. **Change notifications** - Email notifications when elements change
+4. **Version annotations** - Tag documentation with version numbers
+5. **Baseline comparison** - Compare current model against baseline
+6. **Change approval workflow** - Review and approve documentation changes
+
+### 🎯 Filtering & Scoping
+1. **Package filtering** - Generate docs for specific packages only
+2. **Stereotype filtering** - Document only elements with specific stereotypes
+3. **Status filtering** - Filter by element status (Proposed, Approved, Implemented)
+4. **Tag-based filtering** - Use EA tags to control what gets documented
+5. **Custom queries** - SQL queries to select elements for documentation
+6. **Baseline filtering** - Document only changes since last baseline
+
+### 🔧 Advanced Features
+1. **Incremental generation** - Only regenerate changed documentation
+2. **Parallel processing** - Multi-threaded documentation generation
+3. **Watch mode** - Auto-regenerate when .qea file changes
+4. **Glossary generation** - Extract and document domain terms
+5. **Index generation** - Alphabetical index of all elements
+6. **Acronym list** - Auto-detect and list acronyms
+7. **UML visibility symbols** - Show +, -, #, ~ for public/private/protected/package
+8. **Method signatures** - Full signatures with return types and parameters
+9. **Inheritance tree** - Show class hierarchy visually
+10. **Interface implementation matrix** - Which classes implement which interfaces
+
+### 🌐 Web Portal Features
+1. **Static site generator** - Generate complete documentation website
+2. **Dark mode** - Toggle between light and dark themes
+3. **Responsive design** - Mobile-friendly documentation
+4. **Print optimization** - CSS for clean printing
+5. **Bookmark functionality** - Allow users to bookmark pages
+6. **Comment system** - Allow team members to comment on documentation
+7. **Version selector** - Switch between different documentation versions
+
+### 🧪 Testing & Quality Assurance
+1. **Link validation** - Verify all internal links work
+2. **Image validation** - Check all diagram images exist and render
+3. **HTML validation** - W3C compliance checking
+4. **Accessibility audit** - WCAG compliance for HTML docs
+5. **Performance metrics** - Track generation time and optimization opportunities
+6. **Spell check integration** - Automated spell checking in CI/CD
+
+### 🔌 Tool Integration
+1. **JIRA integration** - Link requirements to JIRA issues
+2. **Git integration** - Track which code files implement which classes
+3. **PlantUML export** - Generate PlantUML text from diagrams
+4. **Archimate export** - Convert to enterprise architecture format
+5. **XMI import/export** - Standard UML model exchange
+6. **CSV export** - Export element lists to CSV for analysis in Excel
+
+---
+
+## Quick Wins (2-4 Hours Each)
+
+These enhancements offer high value with relatively low implementation effort:
+
+### 1. ⚡ UML Visibility Symbols (2 hours)
+**Impact:** Better UML compliance, easier to scan class documentation
+**Effort:** Modify class_generator.py to add +/−/#/~ symbols
+**Files:** `sparx_ea_doc/generators/class_generator.py`
+
+### 2. ⚡ Table of Contents for Long Documents (2 hours)
+**Impact:** Much easier navigation on long use case/class pages
+**Effort:** Add TOC generation to HTML generator using markdown extension
+**Files:** `sparx_ea_doc/html_generator.py`
+
+### 3. ⚡ Index Page Generation (3 hours)
+**Impact:** Alphabetical index makes finding elements easy
+**Effort:** Create new generator that builds A-Z index of all elements
+**Files:** New `sparx_ea_doc/generators/index_generator.py`
+
+### 4. ⚡ CSV Export for Requirements (2 hours)
+**Impact:** Stakeholders can analyze requirements in Excel
+**Effort:** Add CSV output option to requirement_generator
+**Files:** `sparx_ea_doc/generators/requirement_generator.py`
+
+### 5. ⚡ Dark Mode Toggle (3 hours)
+**Impact:** Better reading experience, modern UI
+**Effort:** Add CSS dark theme + JavaScript toggle to HTML template
+**Files:** `sparx_ea_doc/html_generator.py`
+
+### 6. ⚡ Enhanced Traceability Report (4 hours)
+**Impact:** High-value matrix showing Requirements → Use Cases → Classes
+**Effort:** Create new report generator with matrix visualization
+**Files:** New `sparx_ea_doc/generators/traceability_generator.py`
+
+### 7. ⚡ Package Filtering via CLI (2 hours)
+**Impact:** Generate docs for specific packages only (faster, focused)
+**Effort:** Add `--packages` CLI argument with filtering logic
+**Files:** `sparx_doc_generator.py`, `sparx_ea_doc/extractor.py`
+
+### 8. ⚡ Print-Friendly CSS (2 hours)
+**Impact:** Professional printed documentation
+**Effort:** Add `@media print` CSS rules to HTML generator
+**Files:** `sparx_ea_doc/html_generator.py`
+
+### 9. ⚡ Glossary Generator (3 hours)
+**Impact:** Auto-generate glossary from tagged terms
+**Effort:** Extract terms from element notes, build glossary page
+**Files:** New `sparx_ea_doc/generators/glossary_generator.py`
+
+### 10. ⚡ Link Validation (3 hours)
+**Impact:** Catch broken internal links before publishing
+**Effort:** Add post-generation validation script
+**Files:** New `validate_links.py`
+
+---
 
 ## For New Sessions
 

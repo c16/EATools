@@ -1,5 +1,17 @@
 # Sparx Enterprise Architect Documentation Generator
 
+> **Note:** This is the original project specification. For current documentation, features, and usage instructions, see [README.md](README.md) and [QUICKSTART.md](QUICKSTART.md).
+>
+> **Project Status:** ✅ Complete and actively maintained. All core requirements implemented plus significant enhancements:
+> - HTML generation with responsive images
+> - Pixel-perfect diagram rendering
+> - EA diagram integration and automated extraction (Windows)
+> - Object ID-based filenames preventing name clashes
+> - Multi-codepage text handling (UTF-8, Windows-1252, ISO-8859-1, CP1252)
+> - Comprehensive test suite (29 text cleaning tests + regression tests)
+> - Quality reporting and change tracking
+> - Template system for customization
+
 ## Project Overview
 Develop a Python utility that extracts and documents UML models from Sparx Enterprise Architect .qea files (SQLite database format) and generates comprehensive markdown documentation.
 

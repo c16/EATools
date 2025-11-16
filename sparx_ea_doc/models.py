@@ -6,6 +6,7 @@ import re
 import html
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
+from .utils import clean_text_content
 
 
 @dataclass
@@ -24,16 +25,14 @@ class Element:
     guid: str = ''
 
     def clean_note(self) -> str:
-        """Remove HTML tags and clean up note text"""
-        if not self.note:
-            return ""
-        # Remove HTML tags
-        text = re.sub(r'<[^>]+>', '', self.note)
-        # Decode HTML entities
-        text = html.unescape(text)
-        # Clean up whitespace
-        text = re.sub(r'\s+', ' ', text).strip()
-        return text
+        """
+        Remove HTML tags and clean up note text.
+
+        Uses robust text cleaning to handle different codepages and unprintable characters.
+        This ensures notes from various sources (copy/paste from different applications)
+        can always be safely written to documentation files.
+        """
+        return clean_text_content(self.note, remove_html=True)
 
     def parse_structured_note(self) -> Dict[str, str]:
         """
@@ -48,9 +47,8 @@ class Element:
         if not self.note:
             return {}
 
-        # Remove HTML tags but keep structure
-        text = re.sub(r'<[^>]+>', '', self.note)
-        text = html.unescape(text)
+        # Clean text robustly, preserving line structure for parsing
+        text = clean_text_content(self.note, remove_html=True)
 
         sections = {}
         current_section = None
