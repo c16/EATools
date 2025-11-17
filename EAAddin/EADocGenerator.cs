@@ -8,38 +8,14 @@ using EA;
 namespace EADocGenerator
 {
     /// <summary>
-    /// Interface for EA Addin - must be ComVisible for EA to discover it
-    /// </summary>
-    [ComVisible(true)]
-    [Guid("7B5D6AC1-8B5E-4F5D-9E3C-2A4B5C6D7E8F")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
-    public interface IEAAddin
-    {
-        [DispId(1)]
-        string EA_Connect(Repository repository);
-
-        [DispId(2)]
-        void EA_Disconnect();
-
-        [DispId(3)]
-        object EA_GetMenuItems(Repository repository, string location, string menuName);
-
-        [DispId(4)]
-        void EA_MenuClick(Repository repository, string location, string menuName, string itemName);
-
-        [DispId(5)]
-        bool EA_GetMenuState(Repository repository, string location, string menuName, string itemName, ref bool isEnabled, ref bool isChecked);
-    }
-
-    /// <summary>
     /// EA Addin for generating documentation using the Python generator
     /// Implements EA.Addin interface to integrate with Enterprise Architect
     /// </summary>
     [ComVisible(true)]
-    [ClassInterface(ClassInterfaceType.None)]
+    [ClassInterface(ClassInterfaceType.AutoDual)]
     [Guid("8A6C6AC1-8B5E-4F5D-9E3C-2A4B5C6D7E8F")]
     [ProgId("EADocGenerator.EADocGeneratorAddin")]
-    public class EADocGeneratorAddin : IEAAddin
+    public class EADocGeneratorAddin
     {
         // EA Repository reference
         private Repository repository;
@@ -62,6 +38,8 @@ namespace EADocGenerator
         /// </summary>
         public EADocGeneratorAddin()
         {
+            // TEMPORARY: Diagnostic message to verify EA loads the addin
+            MessageBox.Show("EADocGeneratorAddin constructor called!", "EA Doc Generator - Debug", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         /// <summary>
@@ -69,6 +47,8 @@ namespace EADocGenerator
         /// </summary>
         public string EA_Connect(Repository repository)
         {
+            // TEMPORARY: Diagnostic message to verify EA calls EA_Connect
+            MessageBox.Show("EA_Connect called!", "EA Doc Generator - Debug", MessageBoxButtons.OK, MessageBoxIcon.Information);
             this.repository = repository;
             return "EA Doc Generator";
         }
