@@ -97,7 +97,7 @@ class QualityReporter:
                              self.quality_metrics['total_elements'] * 100) if self.quality_metrics['total_elements'] > 0 else 0
         report_content += f"\n**Documentation Rate:** {documentation_rate:.1f}%\n"
 
-        with open(report_file, 'w') as f:
+        with open(report_file, 'w', encoding='utf-8') as f:
             f.write(report_content)
 
         # Generate/update reports index
@@ -159,7 +159,7 @@ class QualityReporter:
 
             report_content += "```\n\n"
 
-        with open(report_file, 'w') as f:
+        with open(report_file, 'w', encoding='utf-8') as f:
             f.write(report_content)
 
         # Generate/update reports index
@@ -187,5 +187,5 @@ class QualityReporter:
             index_content += f"### [{title}]({filename})\n\n"
             index_content += f"{description}\n\n"
 
-        with open(index_file, 'w') as f:
+        with open(index_file, 'w', encoding='utf-8') as f:
             f.write(index_content)

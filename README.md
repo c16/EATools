@@ -4,6 +4,7 @@ A Python utility that extracts and documents UML models from Sparx Enterprise Ar
 
 ## Features
 
+- **EA Addin Integration**: Generate documentation directly from Enterprise Architect without leaving EA! (See [EA Addin](#ea-addin-integration) below)
 - **Multi-format Documentation**: Extracts Use Cases, Requirements, State Machines, Components, and Classes/Modules
 - **HTML Generation**: Convert markdown documentation to HTML with embedded CSS styling
 - **Diagram Rendering**: Generates pixel-perfect PNG diagrams matching EA's visual style
@@ -17,6 +18,26 @@ A Python utility that extracts and documents UML models from Sparx Enterprise Ar
 - **Markdown Output**: Professional, navigable documentation in markdown format
 - **Change Tracking**: Track documentation versions and generate diffs
 - **Configurable**: Customizable extraction and documentation options via YAML config
+
+## EA Addin Integration
+
+**NEW!** You can now generate documentation directly from Enterprise Architect using the EA Addin!
+
+The EA Addin adds a convenient menu to Enterprise Architect that lets you:
+- Generate documentation with a single click
+- Access all documentation types (use cases, classes, components, state machines, requirements)
+- Extract diagrams directly from EA
+- Open output folders and edit settings without leaving EA
+
+### Quick Start
+
+1. Navigate to the `EAAddin` folder
+2. Run `build.bat` to compile the addin
+3. Run `register.bat` (as administrator) to register with EA
+4. Restart Enterprise Architect
+5. Look for "EA Doc Generator" in the Extensions menu
+
+For detailed installation and usage instructions, see [EAAddin/README.md](EAAddin/README.md).
 
 ## Requirements
 

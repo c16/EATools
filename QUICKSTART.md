@@ -14,11 +14,46 @@ This is a Python-based documentation generator for Sparx Enterprise Architect mo
 - **Quality reports** highlighting missing documentation and relationships
 - **Regression testing** to ensure consistent output across code changes
 - **Change tracking** with visual diff markup to compare documentation versions
+- **EA Addin Integration** (NEW!) - Generate documentation directly from Enterprise Architect
+
+## Two Ways to Use This Tool
+
+### Option 1: EA Addin (Recommended for EA Users)
+
+Generate documentation directly from Enterprise Architect without leaving EA!
+
+**Quick Setup:**
+1. Navigate to `EAAddin` folder
+2. Run `build.bat` to compile the addin
+3. Run `register.bat` (as administrator)
+4. Restart EA
+5. Use "EA Doc Generator" menu in Extensions
+
+**Usage:**
+- Open your model in EA
+- Go to Extensions → EA Doc Generator
+- Select documentation type to generate
+- Documentation is created automatically!
+
+See [EAAddin/README.md](EAAddin/README.md) for detailed instructions.
+
+### Option 2: Command Line (Flexible for Automation)
+
+Use Python scripts directly for automation, custom workflows, or non-Windows platforms.
+
+See below for command-line usage examples.
 
 ## Project Structure
 
 ```
 EATools/
+├── EAAddin/                        # EA Addin for in-app documentation generation (NEW!)
+│   ├── EADocGenerator.cs           # C# addin implementation
+│   ├── EADocGenerator.csproj       # Visual Studio project file
+│   ├── build.bat                   # Build script
+│   ├── register.bat                # Registration script (run as admin)
+│   ├── unregister.bat              # Unregistration script
+│   └── README.md                   # Addin installation and usage guide
 ├── sparx_doc_generator.py          # Main orchestrator (291 lines)
 ├── sparx_doc_gui.py                # GUI application with preview capability
 ├── ea_diagram_extractor.py         # Windows COM automation for EA diagram extraction
