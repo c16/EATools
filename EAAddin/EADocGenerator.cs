@@ -38,8 +38,6 @@ namespace EADocGenerator
         /// </summary>
         public EADocGeneratorAddin()
         {
-            // TEMPORARY: Diagnostic message to verify EA loads the addin
-            MessageBox.Show("EADocGeneratorAddin constructor called!", "EA Doc Generator - Debug", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         /// <summary>
@@ -47,8 +45,6 @@ namespace EADocGenerator
         /// </summary>
         public string EA_Connect(Repository repository)
         {
-            // TEMPORARY: Diagnostic message to verify EA calls EA_Connect
-            MessageBox.Show("EA_Connect called!", "EA Doc Generator - Debug", MessageBoxButtons.OK, MessageBoxIcon.Information);
             this.repository = repository;
             return "EA Doc Generator";
         }
