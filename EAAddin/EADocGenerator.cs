@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using EA;
 
@@ -10,6 +11,10 @@ namespace EADocGenerator
     /// EA Addin for generating documentation using the Python generator
     /// Implements EA.Addin interface to integrate with Enterprise Architect
     /// </summary>
+    [ComVisible(true)]
+    [ClassInterface(ClassInterfaceType.None)]
+    [Guid("8A6C6AC1-8B5E-4F5D-9E3C-2A4B5C6D7E8F")]
+    [ProgId("EADocGenerator.EADocGeneratorAddin")]
     public class EADocGeneratorAddin
     {
         // EA Repository reference
