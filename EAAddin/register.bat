@@ -26,36 +26,28 @@ if not exist "bin\Release\EADocGenerator.dll" (
 )
 
 echo Unblocking DLL file (in case Windows blocked it)...
-powershell -Command "Unblock-File -Path 'bin\Release\EADocGenerator.dll'"
+powershell -Command "Unblock-File -Path 'bin\Release\EADocGenerator.dll'" 2>nul
 echo.
 
-echo Registering COM component (32-bit)...
+echo Registering COM component (64-bit for EA 17)...
 echo.
 
-REM Register the DLL with regasm (32-bit)
-"%WINDIR%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /codebase /tlb
+REM Register with 64-bit regasm for EA 17 (64-bit only)
+"%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /codebase
 
 if %errorlevel% neq 0 (
     echo.
-    echo ERROR: Failed to register COM component (32-bit)!
-    echo.
-    pause
-    exit /b %errorlevel%
-)
-
-echo.
-echo Registering COM component (64-bit)...
-echo.
-
-REM Also register with 64-bit regasm if it exists
-if exist "%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" (
-    "%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /codebase /tlb
+    echo ERROR: Failed to register COM component (64-bit)!
+    echo Trying 32-bit registration as fallback...
+    "%WINDIR%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /codebase
     if %errorlevel% neq 0 (
-        echo WARNING: 64-bit registration failed, but 32-bit succeeded
-    ) else (
-        echo 64-bit registration succeeded
+        echo ERROR: Both 32-bit and 64-bit registration failed!
+        pause
+        exit /b %errorlevel%
     )
 )
+
+echo Registration successful!
 echo.
 
 echo.
