@@ -164,7 +164,7 @@ namespace EADocGenerator
                 string pythonScript = Path.Combine(scriptDir, "sparx_doc_generator.py");
                 string outputDir = Path.Combine(scriptDir, "docs");
 
-                if (!File.Exists(pythonScript))
+                if (!System.IO.File.Exists(pythonScript))
                 {
                     MessageBox.Show($"Python script not found at: {pythonScript}\n\nPlease ensure the addin is installed correctly.",
                         "EA Doc Generator", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -250,7 +250,7 @@ namespace EADocGenerator
                 string pythonScript = Path.Combine(scriptDir, "ea_diagram_extractor.py");
                 string outputDir = Path.Combine(scriptDir, "diagrams");
 
-                if (!File.Exists(pythonScript))
+                if (!System.IO.File.Exists(pythonScript))
                 {
                     MessageBox.Show($"Diagram extractor script not found at: {pythonScript}",
                         "EA Doc Generator", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -355,7 +355,7 @@ namespace EADocGenerator
                 string scriptDir = GetScriptDirectory();
                 string configPath = Path.Combine(scriptDir, "config.yaml");
 
-                if (File.Exists(configPath))
+                if (System.IO.File.Exists(configPath))
                 {
                     Process.Start("notepad.exe", configPath);
                 }
