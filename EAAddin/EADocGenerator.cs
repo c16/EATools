@@ -8,14 +8,38 @@ using EA;
 namespace EADocGenerator
 {
     /// <summary>
+    /// Interface for EA Addin - must be ComVisible for EA to discover it
+    /// </summary>
+    [ComVisible(true)]
+    [Guid("7B5D6AC1-8B5E-4F5D-9E3C-2A4B5C6D7E8F")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
+    public interface IEAAddin
+    {
+        [DispId(1)]
+        string EA_Connect(Repository repository);
+
+        [DispId(2)]
+        void EA_Disconnect();
+
+        [DispId(3)]
+        object EA_GetMenuItems(Repository repository, string location, string menuName);
+
+        [DispId(4)]
+        void EA_MenuClick(Repository repository, string location, string menuName, string itemName);
+
+        [DispId(5)]
+        bool EA_GetMenuState(Repository repository, string location, string menuName, string itemName, ref bool isEnabled, ref bool isChecked);
+    }
+
+    /// <summary>
     /// EA Addin for generating documentation using the Python generator
     /// Implements EA.Addin interface to integrate with Enterprise Architect
     /// </summary>
     [ComVisible(true)]
-    [ClassInterface(ClassInterfaceType.AutoDual)]
+    [ClassInterface(ClassInterfaceType.None)]
     [Guid("8A6C6AC1-8B5E-4F5D-9E3C-2A4B5C6D7E8F")]
     [ProgId("EADocGenerator.EADocGeneratorAddin")]
-    public class EADocGeneratorAddin
+    public class EADocGeneratorAddin : IEAAddin
     {
         // EA Repository reference
         private Repository repository;
