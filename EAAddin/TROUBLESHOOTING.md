@@ -1,8 +1,26 @@
 # EA Addin Troubleshooting for EA 17
 
-## Current Status
+## SOLUTION FOUND
 
-The EA addin has been successfully built and registered, but EA 17 (64-bit) is not loading it.
+**Root Cause**: The project was building with "Any CPU" platform target instead of explicit x64 target.
+
+**Fix**: Updated EADocGenerator.csproj to explicitly target x64 platform as required by Sparx Systems documentation.
+
+According to Sparx Systems EA 17 documentation:
+> "When generating a .NET assembly, you must explicitly set the 'Target Platform' to x86/x64. Leaving it on 'Any CPU' could cause issues when Enterprise Architect 32 bit is run on a 64 bit version of windows."
+
+**Changes Made**:
+- EADocGenerator.csproj: Changed platform from AnyCPU to x64
+- build.bat: Updated to build with `/p:Platform=x64`
+- All registration scripts updated to use `bin\x64\Release\` output path
+
+**To Test**: Run build.bat, then register.bat (as admin), then restart EA and check Extensions → Add-Ins.
+
+---
+
+## Previous Status (RESOLVED)
+
+The EA addin was successfully built and registered, but EA 17 (64-bit) was not loading it.
 
 ## What Works
 

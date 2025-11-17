@@ -4,10 +4,10 @@ echo =====================
 echo.
 
 echo 1. Checking if DLL exists...
-if exist "bin\Release\EADocGenerator.dll" (
-    echo    FOUND: bin\Release\EADocGenerator.dll
+if exist "bin\x64\Release\EADocGenerator.dll" (
+    echo    FOUND: bin\x64\Release\EADocGenerator.dll
 ) else (
-    echo    NOT FOUND: bin\Release\EADocGenerator.dll
+    echo    NOT FOUND: bin\x64\Release\EADocGenerator.dll
 )
 echo.
 
@@ -35,7 +35,7 @@ if %errorlevel% equ 0 (
 echo.
 
 echo 5. Checking file properties...
-dir "bin\Release\EADocGenerator.dll"
+dir "bin\x64\Release\EADocGenerator.dll"
 echo.
 
 pause

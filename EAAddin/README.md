@@ -35,9 +35,9 @@ The addin acts as a bridge between EA and the Python documentation generator, ma
 ## Prerequisites
 
 ### Required
-1. **Enterprise Architect** (any recent version)
+1. **Enterprise Architect 17** (64-bit recommended)
 2. **Python 3.8+** installed and in your PATH
-3. **Visual Studio** or **.NET Framework SDK** (for building)
+3. **Visual Studio** or **.NET Framework SDK 4.8** (for building)
 4. **Python dependencies** (install with `pip install -r requirements.txt` from the EATools root):
    - PyYAML
    - graphviz
@@ -46,6 +46,10 @@ The addin acts as a bridge between EA and the Python documentation generator, ma
 
 ### Optional
 - **pywin32** (for diagram extraction on Windows): `pip install pywin32`
+
+### Important Notes
+- **For EA 17 64-bit**: The project is configured to build for x64 platform explicitly (required by Sparx Systems)
+- **For EA 32-bit**: You may need to change the platform target to x86 in EADocGenerator.csproj
 
 ## Installation
 
@@ -248,9 +252,16 @@ To debug the addin:
 ### File Locations
 
 The addin determines the Python script location relative to its own location:
-- Addin DLL: `EATools/EAAddin/bin/Release/EADocGenerator.dll`
+- Addin DLL: `EATools/EAAddin/bin/x64/Release/EADocGenerator.dll` (64-bit EA)
 - Python scripts: `EATools/*.py`
 - Output: `EATools/docs/`
+
+### Platform Targeting
+
+This addin is built for **x64** by default to support EA 17 64-bit. According to Sparx Systems documentation:
+> "When generating a .NET assembly, you must explicitly set the 'Target Platform' to x86/x64. Leaving it on 'Any CPU' could cause issues."
+
+If you have EA 32-bit, modify `EADocGenerator.csproj` to change the platform from x64 to x86.
 
 ## Support
 

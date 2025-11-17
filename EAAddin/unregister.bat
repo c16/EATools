@@ -26,11 +26,11 @@ echo Unregistering COM component...
 echo.
 
 REM Check if DLL exists
-if exist "bin\Release\EADocGenerator.dll" (
-    "%WINDIR%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /unregister
+if exist "bin\x64\Release\EADocGenerator.dll" (
+    "%WINDIR%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe" "bin\x64\Release\EADocGenerator.dll" /unregister
 
     if exist "%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" (
-        "%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /unregister
+        "%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" "bin\x64\Release\EADocGenerator.dll" /unregister
     )
 )
 

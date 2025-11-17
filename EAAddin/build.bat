@@ -46,8 +46,8 @@ if %MSBUILD_PATH%=="" (
 echo Found MSBuild at: %MSBUILD_PATH%
 echo.
 
-REM Build the project
-%MSBUILD_PATH% EADocGenerator.csproj /p:Configuration=Release /p:Platform=AnyCPU /t:Rebuild
+REM Build the project for x64 (required by EA)
+%MSBUILD_PATH% EADocGenerator.csproj /p:Configuration=Release /p:Platform=x64 /t:Rebuild
 
 if %errorlevel% neq 0 (
     echo.
@@ -60,7 +60,7 @@ if %errorlevel% neq 0 (
 echo.
 echo BUILD SUCCESSFUL!
 echo.
-echo Output: bin\Release\EADocGenerator.dll
+echo Output: bin\x64\Release\EADocGenerator.dll
 echo.
 echo Next steps:
 echo 1. Run register.bat to register the addin with EA

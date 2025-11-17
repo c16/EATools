@@ -17,7 +17,7 @@ if %errorlevel% neq 0 (
 )
 
 REM Check if DLL exists
-if not exist "bin\Release\EADocGenerator.dll" (
+if not exist "bin\x64\Release\EADocGenerator.dll" (
     echo ERROR: EADocGenerator.dll not found!
     echo Please build the project first by running build.bat
     echo.
@@ -26,14 +26,14 @@ if not exist "bin\Release\EADocGenerator.dll" (
 )
 
 echo Unblocking DLL file (in case Windows blocked it)...
-powershell -Command "Unblock-File -Path 'bin\Release\EADocGenerator.dll'" 2>nul
+powershell -Command "Unblock-File -Path 'bin\x64\Release\EADocGenerator.dll'" 2>nul
 echo.
 
 echo Registering COM component (64-bit for EA 17)...
 echo.
 
 REM Register with 64-bit regasm for EA 17 (64-bit only)
-"%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /codebase
+"%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" "bin\x64\Release\EADocGenerator.dll" /codebase
 
 if errorlevel 1 goto TRY_32BIT
 goto REGISTRATION_OK
@@ -41,7 +41,7 @@ goto REGISTRATION_OK
 :TRY_32BIT
 echo.
 echo 64-bit registration failed. Trying 32-bit registration as fallback...
-"%WINDIR%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /codebase
+"%WINDIR%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe" "bin\x64\Release\EADocGenerator.dll" /codebase
 if errorlevel 1 goto REGISTRATION_FAILED
 goto REGISTRATION_OK
 
@@ -61,7 +61,7 @@ echo Adding EA addin registry entries...
 echo.
 
 REM Get the full path to the DLL
-set DLL_PATH=%CD%\bin\Release\EADocGenerator.dll
+set DLL_PATH=%CD%\bin\x64\Release\EADocGenerator.dll
 
 REM Add registry entry for EA to load the addin
 reg add "HKEY_CURRENT_USER\Software\Sparx Systems\EAAddins\EADocGenerator" /v "Location" /t REG_SZ /d "%DLL_PATH%" /f
