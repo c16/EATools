@@ -12,7 +12,7 @@ namespace EADocGenerator
     /// Implements EA.Addin interface to integrate with Enterprise Architect
     /// </summary>
     [ComVisible(true)]
-    [ClassInterface(ClassInterfaceType.None)]
+    [ClassInterface(ClassInterfaceType.AutoDual)]
     [Guid("8A6C6AC1-8B5E-4F5D-9E3C-2A4B5C6D7E8F")]
     [ProgId("EADocGenerator.EADocGeneratorAddin")]
     public class EADocGeneratorAddin
@@ -32,6 +32,13 @@ namespace EADocGenerator
         private const string MENU_OPEN_OUTPUT = "&Open Output Folder";
         private const string MENU_SETTINGS = "&Settings";
         private const string MENU_ABOUT = "&About";
+
+        /// <summary>
+        /// Public constructor required for COM
+        /// </summary>
+        public EADocGeneratorAddin()
+        {
+        }
 
         /// <summary>
         /// Called when EA starts - initialize the addin
