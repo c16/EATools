@@ -23,6 +23,7 @@ namespace EADocGenerator
         // Menu constants
         private const string MENU_NAME = "-&EA Doc Generator";
         private const string MENU_GENERATE_ALL = "&Generate All Documentation";
+        private const string MENU_GENERATE_ALL_HTML = "Generate All Documentation (&HTML)";
         private const string MENU_GENERATE_USE_CASES = "Generate &Use Cases";
         private const string MENU_GENERATE_CLASSES = "Generate &Classes";
         private const string MENU_GENERATE_COMPONENTS = "Generate C&omponents";
@@ -30,6 +31,7 @@ namespace EADocGenerator
         private const string MENU_GENERATE_REQUIREMENTS = "Generate &Requirements";
         private const string MENU_EXTRACT_DIAGRAMS = "Extract &Diagrams (Windows Only)";
         private const string MENU_OPEN_OUTPUT = "&Open Output Folder";
+        private const string MENU_OPEN_HTML_OUTPUT = "Open &HTML Output Folder";
         private const string MENU_SETTINGS = "&Settings";
         private const string MENU_ABOUT = "&About";
 
@@ -70,6 +72,8 @@ namespace EADocGenerator
                 case MENU_NAME:
                     string[] items = {
                         MENU_GENERATE_ALL,
+                        MENU_GENERATE_ALL_HTML,
+                        "-",
                         MENU_GENERATE_USE_CASES,
                         MENU_GENERATE_CLASSES,
                         MENU_GENERATE_COMPONENTS,
@@ -77,7 +81,9 @@ namespace EADocGenerator
                         MENU_GENERATE_REQUIREMENTS,
                         "-",
                         MENU_EXTRACT_DIAGRAMS,
+                        "-",
                         MENU_OPEN_OUTPUT,
+                        MENU_OPEN_HTML_OUTPUT,
                         "-",
                         MENU_SETTINGS,
                         MENU_ABOUT
@@ -95,28 +101,34 @@ namespace EADocGenerator
             switch (itemName)
             {
                 case MENU_GENERATE_ALL:
-                    GenerateDocumentation("all");
+                    GenerateDocumentation("all", false);
+                    break;
+                case MENU_GENERATE_ALL_HTML:
+                    GenerateDocumentation("all", true);
                     break;
                 case MENU_GENERATE_USE_CASES:
-                    GenerateDocumentation("use-cases");
+                    GenerateDocumentation("use-cases", false);
                     break;
                 case MENU_GENERATE_CLASSES:
-                    GenerateDocumentation("classes");
+                    GenerateDocumentation("classes", false);
                     break;
                 case MENU_GENERATE_COMPONENTS:
-                    GenerateDocumentation("components");
+                    GenerateDocumentation("components", false);
                     break;
                 case MENU_GENERATE_STATE_MACHINES:
-                    GenerateDocumentation("state-machines");
+                    GenerateDocumentation("state-machines", false);
                     break;
                 case MENU_GENERATE_REQUIREMENTS:
-                    GenerateDocumentation("requirements");
+                    GenerateDocumentation("requirements", false);
                     break;
                 case MENU_EXTRACT_DIAGRAMS:
                     ExtractDiagrams();
                     break;
                 case MENU_OPEN_OUTPUT:
                     OpenOutputFolder();
+                    break;
+                case MENU_OPEN_HTML_OUTPUT:
+                    OpenHtmlOutputFolder();
                     break;
                 case MENU_SETTINGS:
                     ShowSettings();
@@ -143,7 +155,7 @@ namespace EADocGenerator
         /// <summary>
         /// Generate documentation using Python script
         /// </summary>
-        private void GenerateDocumentation(string docType)
+        private void GenerateDocumentation(string docType, bool generateHtml)
         {
             try
             {
@@ -177,6 +189,7 @@ namespace EADocGenerator
                 string scriptDir = GetScriptDirectory();
                 string pythonScript = Path.Combine(scriptDir, "sparx_doc_generator.py");
                 string outputDir = Path.Combine(scriptDir, "docs");
+                string htmlOutputDir = Path.Combine(scriptDir, "docs_html");
 
                 if (!System.IO.File.Exists(pythonScript))
                 {
@@ -193,8 +206,15 @@ namespace EADocGenerator
                     args += $" --types {docType}";
                 }
 
+                // Add HTML generation flag if requested
+                if (generateHtml)
+                {
+                    args += $" --html --html-output \"{htmlOutputDir}\"";
+                }
+
                 // Show progress message
-                repository.WriteOutput("System", $"EA Doc Generator: Starting documentation generation ({docType})...", 0);
+                string format = generateHtml ? "Markdown + HTML" : "Markdown";
+                repository.WriteOutput("System", $"EA Doc Generator: Starting documentation generation ({docType}, {format})...", 0);
                 repository.WriteOutput("System", $"Command: python {args}", 0);
 
                 // Execute Python script in the background (don't block EA)
@@ -210,10 +230,15 @@ namespace EADocGenerator
                 Process.Start(startInfo);
 
                 // Show notification that generation started
+                string outputInfo = generateHtml
+                    ? $"Markdown: {outputDir}\nHTML: {htmlOutputDir}"
+                    : $"Markdown: {outputDir}";
+
                 MessageBox.Show(
                     $"Documentation generation started in the background.\n\n" +
                     $"Type: {docType}\n" +
-                    $"Output: {outputDir}\n\n" +
+                    $"Format: {format}\n" +
+                    $"Output:\n{outputInfo}\n\n" +
                     $"You can continue working in EA. Check the output folder when complete.",
                     "EA Doc Generator",
                     MessageBoxButtons.OK,
@@ -312,6 +337,39 @@ namespace EADocGenerator
             {
                 MessageBox.Show(
                     $"Error opening output folder:\n\n{ex.Message}",
+                    "EA Doc Generator",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Open the HTML output folder in file explorer
+        /// </summary>
+        private void OpenHtmlOutputFolder()
+        {
+            try
+            {
+                string scriptDir = GetScriptDirectory();
+                string htmlOutputDir = Path.Combine(scriptDir, "docs_html");
+
+                if (Directory.Exists(htmlOutputDir))
+                {
+                    Process.Start("explorer.exe", htmlOutputDir);
+                }
+                else
+                {
+                    MessageBox.Show(
+                        $"HTML output folder not found: {htmlOutputDir}\n\nPlease generate HTML documentation first using 'Generate All Documentation (HTML)'.",
+                        "EA Doc Generator",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error opening HTML output folder:\n\n{ex.Message}",
                     "EA Doc Generator",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
