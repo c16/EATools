@@ -47,7 +47,7 @@ echo Found MSBuild at: %MSBUILD_PATH%
 echo.
 
 REM Build the project
-%MSBUILD_PATH% EADocGenerator.csproj /p:Configuration=Release /p:Platform="Any CPU" /t:Rebuild
+%MSBUILD_PATH% EADocGenerator.csproj /p:Configuration=Release /p:Platform=AnyCPU /t:Rebuild
 
 if %errorlevel% neq 0 (
     echo.
