@@ -195,53 +195,29 @@ namespace EADocGenerator
 
                 // Show progress message
                 repository.WriteOutput("System", $"EA Doc Generator: Starting documentation generation ({docType})...", 0);
+                repository.WriteOutput("System", $"Command: python {args}", 0);
 
-                // Execute Python script
+                // Execute Python script in the background (don't block EA)
                 ProcessStartInfo startInfo = new ProcessStartInfo
                 {
                     FileName = "python",
                     Arguments = args,
                     UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
                     CreateNoWindow = true,
                     WorkingDirectory = scriptDir
                 };
 
-                using (Process process = Process.Start(startInfo))
-                {
-                    // Show progress window
-                    string output = process.StandardOutput.ReadToEnd();
-                    string error = process.StandardError.ReadToEnd();
-                    process.WaitForExit();
+                Process.Start(startInfo);
 
-                    if (process.ExitCode == 0)
-                    {
-                        repository.WriteOutput("System", "EA Doc Generator: Documentation generated successfully!", 0);
-                        repository.WriteOutput("System", output, 0);
-
-                        DialogResult result = MessageBox.Show(
-                            $"Documentation generated successfully!\n\nOutput location: {outputDir}\n\nWould you like to open the output folder?",
-                            "EA Doc Generator",
-                            MessageBoxButtons.YesNo,
-                            MessageBoxIcon.Information);
-
-                        if (result == DialogResult.Yes)
-                        {
-                            OpenOutputFolder();
-                        }
-                    }
-                    else
-                    {
-                        repository.WriteOutput("System", "EA Doc Generator: Error generating documentation", 0);
-                        repository.WriteOutput("System", error, 0);
-                        MessageBox.Show(
-                            $"Error generating documentation:\n\n{error}\n\nSee Output window for details.",
-                            "EA Doc Generator",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error);
-                    }
-                }
+                // Show notification that generation started
+                MessageBox.Show(
+                    $"Documentation generation started in the background.\n\n" +
+                    $"Type: {docType}\n" +
+                    $"Output: {outputDir}\n\n" +
+                    $"You can continue working in EA. Check the output folder when complete.",
+                    "EA Doc Generator",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
@@ -274,47 +250,30 @@ namespace EADocGenerator
                 // Build command line
                 string args = $"\"{pythonScript}\" --output-dir \"{outputDir}\"";
 
-                // Execute Python script
+                repository.WriteOutput("System", "EA Doc Generator: Starting diagram extraction...", 0);
+                repository.WriteOutput("System", $"Command: python {args}", 0);
+
+                // Execute Python script in the background (don't block EA)
                 ProcessStartInfo startInfo = new ProcessStartInfo
                 {
                     FileName = "python",
                     Arguments = args,
                     UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
                     CreateNoWindow = true,
                     WorkingDirectory = scriptDir
                 };
 
-                repository.WriteOutput("System", "EA Doc Generator: Extracting diagrams...", 0);
+                Process.Start(startInfo);
 
-                using (Process process = Process.Start(startInfo))
-                {
-                    string output = process.StandardOutput.ReadToEnd();
-                    string error = process.StandardError.ReadToEnd();
-                    process.WaitForExit();
-
-                    if (process.ExitCode == 0)
-                    {
-                        repository.WriteOutput("System", "EA Doc Generator: Diagrams extracted successfully!", 0);
-                        repository.WriteOutput("System", output, 0);
-                        MessageBox.Show(
-                            $"Diagrams extracted successfully!\n\nOutput location: {outputDir}",
-                            "EA Doc Generator",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        repository.WriteOutput("System", "EA Doc Generator: Error extracting diagrams", 0);
-                        repository.WriteOutput("System", error, 0);
-                        MessageBox.Show(
-                            $"Error extracting diagrams:\n\n{error}\n\nNote: This feature requires Windows and pywin32.",
-                            "EA Doc Generator",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error);
-                    }
-                }
+                // Show notification
+                MessageBox.Show(
+                    $"Diagram extraction started in the background.\n\n" +
+                    $"Output: {outputDir}\n\n" +
+                    $"Note: This requires EA to remain open while diagrams are being extracted.\n" +
+                    $"You can continue working in EA.",
+                    "EA Doc Generator",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
