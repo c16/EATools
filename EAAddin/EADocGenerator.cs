@@ -129,12 +129,14 @@ namespace EADocGenerator
 
         /// <summary>
         /// Get the path to the Python script directory
-        /// Assumes the addin DLL is in EATools/EAAddin/bin/ folder
+        /// Assumes the addin DLL is in EATools/EAAddin/bin/x64/Release/ folder
         /// </summary>
         private string GetScriptDirectory()
         {
             string addinPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            string eaToolsPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(addinPath), "..", ".."));
+            // DLL is in: EATools/EAAddin/bin/x64/Release/EADocGenerator.dll
+            // Need to go up 5 levels: Release -> x64 -> bin -> EAAddin -> EATools
+            string eaToolsPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(addinPath), "..", "..", "..", ".."));
             return eaToolsPath;
         }
 
