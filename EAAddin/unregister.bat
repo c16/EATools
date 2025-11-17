@@ -28,6 +28,10 @@ echo.
 REM Check if DLL exists
 if exist "bin\Release\EADocGenerator.dll" (
     "%WINDIR%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /unregister
+
+    if exist "%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" (
+        "%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /unregister
+    )
 )
 
 echo.
