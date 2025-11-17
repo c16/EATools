@@ -1,0 +1,16 @@
+Type,GUID,Name,Alias,Notes,Stereotype,Priority,Complexity
+usecase,UC-001,Generate Documentation,UC-001,"Generate comprehensive documentation in markdown and HTML formats from EA model files. Include diagrams quality reports and breadcrumb navigation.",primary,High,Medium
+usecase,UC-002,Extract Model Data,UC-002,"Extract all model elements from .qea SQLite database including use cases state machines components classes and requirements. Resolve relationships and clean text content.",internal,High,High
+usecase,UC-003,Render Diagrams,UC-003,"Render UML diagrams as PNG images using PIL/Pillow. Support use case class component and state machine diagrams with proper UML notation.",internal,High,High
+usecase,UC-004,Generate HTML Output,UC-004,"Convert markdown documentation to HTML with embedded CSS and responsive design. Ensure images scale properly on all screen sizes.",extension,Medium,Low
+usecase,UC-005,Track Documentation Changes,UC-005,"Track changes between documentation versions. Create snapshots compare versions and generate diff reports with visual markup.",extension,Medium,Medium
+usecase,UC-006,Analyze Documentation Quality,UC-006,"Analyze model quality and documentation completeness. Identify undocumented elements and calculate coverage metrics.",primary,Medium,Low
+usecase,UC-007,Extract EA Diagrams,UC-007,"Extract diagrams directly from EA using Windows COM automation. Export in GUID-timestamp format for pixel-perfect accuracy.",primary,Medium,Medium
+usecase,UC-008,Configure Documentation Options,UC-008,"Configure documentation generation options via YAML config file or CLI arguments. Support output directories template paths and quality settings.",primary,Medium,Low
+usecase,UC-009,Run Regression Tests,UC-009,"Run regression tests to verify documentation consistency. Compare generated output with golden baseline using checksums.",primary,Medium,Low
+usecase,UC-010,Generate Quality Reports,UC-010,"Generate quality and dependency reports. Show undocumented elements coverage statistics and dependency graphs.",internal,Low,Low
+actor,ACT-DEV,Software Developer,Developer,"Creates and maintains UML models in Enterprise Architect. Runs documentation generator and reviews output.",,High,
+actor,ACT-WRITER,Technical Writer,Writer,"Produces technical documentation for stakeholders. Uses GUI to export EA models to documentation formats.",,High,
+actor,ACT-MGR,Project Manager,Manager,"Oversees project documentation and quality. Reviews quality reports and tracks documentation changes.",,Medium,
+actor,ACT-CICD,CI/CD System,CI/CD,"Automated documentation generation in build pipeline. Executes command-line tool and validates output.",,Medium,
+actor,ACT-EA,Enterprise Architect Application,EA,"Source of UML model data. Provides .qea database files and exports diagrams via COM automation.",,High,

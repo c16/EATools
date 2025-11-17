@@ -1,0 +1,45 @@
+# Sparx Enterprise Architect Model Documentation
+
+**Source:** test_model.qea
+
+## Overview
+
+This documentation was automatically generated from the Sparx Enterprise Architect model. Navigate through the sections below to explore different aspects of the system architecture.
+
+## Documentation Sections
+
+### [Use Cases](use-cases/index.md)
+
+Contains 6 use cases and 5 actors describing system functionality and user interactions.
+
+### [Requirements](requirements/index.md)
+
+Contains 31 requirements defining functional and non-functional system requirements.
+
+
+### [State Machines](state-machines/index.md)
+
+Contains 2 state machines documenting system states and transitions.
+
+
+### [Components](components/index.md)
+
+Contains 3 components and their interfaces, showing system architecture and component interactions.
+
+
+### [Classes and Modules](classes/index.md)
+
+Contains 30 classes, 1 interfaces, and 1 enumerations documenting the domain model.
+
+
+### [Reports](reports/index.md)
+
+Quality reports and analysis of the model documentation and structure.
+
+
+## Model Statistics
+
+- **Total Elements:** 84
+- **Total Packages:** 12
+- **Total Relationships:** 56
+
