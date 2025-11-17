@@ -217,17 +217,45 @@ namespace EADocGenerator
                 repository.WriteOutput("System", $"EA Doc Generator: Starting documentation generation ({docType}, {format})...", 0);
                 repository.WriteOutput("System", $"Command: python {args}", 0);
 
-                // Execute Python script in the background (don't block EA)
+                // Create log file for output
+                string logFile = Path.Combine(scriptDir, "ea_addin_output.log");
+
+                // Execute Python script in the background with output redirected to log file
                 ProcessStartInfo startInfo = new ProcessStartInfo
                 {
                     FileName = "python",
                     Arguments = args,
                     UseShellExecute = false,
                     CreateNoWindow = true,
-                    WorkingDirectory = scriptDir
+                    WorkingDirectory = scriptDir,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
                 };
 
-                Process.Start(startInfo);
+                Process process = Process.Start(startInfo);
+
+                // Asynchronously read output and write to log file
+                System.Threading.Tasks.Task.Run(() =>
+                {
+                    try
+                    {
+                        using (var logWriter = new System.IO.StreamWriter(logFile, false))
+                        {
+                            logWriter.WriteLine($"=== EA Doc Generator Log - {DateTime.Now} ===");
+                            logWriter.WriteLine($"Command: python {args}");
+                            logWriter.WriteLine($"Working Directory: {scriptDir}");
+                            logWriter.WriteLine();
+                            logWriter.WriteLine("=== STDOUT ===");
+                            logWriter.WriteLine(process.StandardOutput.ReadToEnd());
+                            logWriter.WriteLine();
+                            logWriter.WriteLine("=== STDERR ===");
+                            logWriter.WriteLine(process.StandardError.ReadToEnd());
+                            logWriter.WriteLine();
+                            logWriter.WriteLine($"Exit Code: {process.ExitCode}");
+                        }
+                    }
+                    catch { }
+                });
 
                 // Show notification that generation started
                 string outputInfo = generateHtml
