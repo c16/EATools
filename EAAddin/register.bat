@@ -60,11 +60,9 @@ echo.
 echo Adding EA addin registry entries...
 echo.
 
-REM Get the full path to the DLL
-set DLL_PATH=%CD%\bin\x64\Release\EADocGenerator.dll
-
-REM Add registry entry for EA to load the addin
-reg add "HKEY_CURRENT_USER\Software\Sparx Systems\EAAddins\EADocGenerator" /v "Location" /t REG_SZ /d "%DLL_PATH%" /f
+REM Add registry entry for EA 64-bit to load the addin
+REM For EA 64-bit, use EAAddins64 key with ProgId as default value
+reg add "HKEY_CURRENT_USER\Software\Sparx Systems\EAAddins64\EADocGenerator" /ve /t REG_SZ /d "EADocGenerator.EADocGeneratorAddin" /f
 
 if %errorlevel% neq 0 (
     echo.

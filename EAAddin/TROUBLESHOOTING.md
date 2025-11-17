@@ -2,16 +2,27 @@
 
 ## SOLUTION FOUND
 
-**Root Cause**: The project was building with "Any CPU" platform target instead of explicit x64 target.
+**Root Causes**:
+1. The project was building with "Any CPU" platform target instead of explicit x64 target
+2. **CRITICAL**: Registry key was wrong for EA 64-bit
 
-**Fix**: Updated EADocGenerator.csproj to explicitly target x64 platform as required by Sparx Systems documentation.
+**Fixes Applied**:
+
+### Issue 1: Platform Targeting
+Updated EADocGenerator.csproj to explicitly target x64 platform as required by Sparx Systems documentation.
 
 According to Sparx Systems EA 17 documentation:
 > "When generating a .NET assembly, you must explicitly set the 'Target Platform' to x86/x64. Leaving it on 'Any CPU' could cause issues when Enterprise Architect 32 bit is run on a 64 bit version of windows."
 
+### Issue 2: Registry Key for EA 64-bit
+According to Sparx Systems documentation:
+> "the Enterprise Architect 32 and 64 bit editions will only attempt to load Add-Ins under the corresponding key - EAAddIns or EAAddIns64, respectively."
+
 **Changes Made**:
 - EADocGenerator.csproj: Changed platform from AnyCPU to x64
 - build.bat: Updated to build with `/p:Platform=x64`
+- register.bat: **Changed registry key from `EAAddins` to `EAAddins64`**
+- register.bat: **Changed registry value from file path to ProgId format** (`EADocGenerator.EADocGeneratorAddin`)
 - All registration scripts updated to use `bin\x64\Release\` output path
 
 **To Test**: Run build.bat, then register.bat (as admin), then restart EA and check Extensions → Add-Ins.

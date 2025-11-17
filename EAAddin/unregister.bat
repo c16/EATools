@@ -18,8 +18,9 @@ if %errorlevel% neq 0 (
 echo Removing registry entries...
 echo.
 
-REM Remove EA addin registry entry
-reg delete "HKEY_CURRENT_USER\Software\Sparx Systems\EAAddins\EADocGenerator" /f
+REM Remove EA addin registry entries (both 32-bit and 64-bit)
+reg delete "HKEY_CURRENT_USER\Software\Sparx Systems\EAAddins\EADocGenerator" /f 2>nul
+reg delete "HKEY_CURRENT_USER\Software\Sparx Systems\EAAddins64\EADocGenerator" /f 2>nul
 
 echo.
 echo Unregistering COM component...
