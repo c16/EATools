@@ -35,18 +35,24 @@ echo.
 REM Register with 64-bit regasm for EA 17 (64-bit only)
 "%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /codebase
 
-if %errorlevel% neq 0 (
-    echo.
-    echo ERROR: Failed to register COM component (64-bit)!
-    echo Trying 32-bit registration as fallback...
-    "%WINDIR%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /codebase
-    if %errorlevel% neq 0 (
-        echo ERROR: Both 32-bit and 64-bit registration failed!
-        pause
-        exit /b %errorlevel%
-    )
-)
+if errorlevel 1 goto TRY_32BIT
+goto REGISTRATION_OK
 
+:TRY_32BIT
+echo.
+echo 64-bit registration failed. Trying 32-bit registration as fallback...
+"%WINDIR%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe" "bin\Release\EADocGenerator.dll" /codebase
+if errorlevel 1 goto REGISTRATION_FAILED
+goto REGISTRATION_OK
+
+:REGISTRATION_FAILED
+echo.
+echo ERROR: Both 32-bit and 64-bit registration failed!
+pause
+exit /b 1
+
+:REGISTRATION_OK
+echo.
 echo Registration successful!
 echo.
 
